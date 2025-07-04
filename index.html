@@ -1063,8 +1063,6 @@
                 // Event listeners are added only once during initialization
                 if (!isVisualizerInitialized) { 
                     window.addEventListener('resize', onWindowResize, false);
-                    // NEW: Add visibility change listener to handle screen off/on
-                    document.addEventListener('visibilitychange', handleVisibilityChange, false);
                     
                     // Sidebar and Nav Listeners
                     menuToggleButton.addEventListener('click', toggleInfoSidebar);
@@ -1573,6 +1571,8 @@
         // --- Animation Loop and Visualizer Updates ---
         function startAnimationLoop() { if (animationFrameId === null) animate(); } 
         function stopAnimationLoop() { if (animationFrameId !== null) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }}
+        function pauseVisualizer() { if (isPlaying) pauseAudio();  } 
+        function resumeVisualizer() { onWindowResize(); startAnimationLoop(); }
         function animate() {
             animationFrameId = requestAnimationFrame(animate);
             if (!isVisualizerInitialized || !renderer || !scene || !camera) return; 
@@ -1716,29 +1716,6 @@
             dragOverItem = null;
         }
 
-        // --- NEW: Handle Page Visibility Changes ---
-        function handleVisibilityChange() {
-            if (!hasAudioContextStarted || !audioContext) return;
-
-            if (document.visibilityState === 'hidden') {
-                // Page is hidden, pause the audio if it's playing to prevent issues
-                if (isPlaying) {
-                    pauseAudio();
-                }
-            } else if (document.visibilityState === 'visible') {
-                // Page is visible, check if the audio context was suspended by the browser
-                if (audioContext.state === 'suspended' || audioContext.state === 'interrupted') {
-                    console.log("AudioContext is suspended, attempting to resume...");
-                    audioContext.resume().then(() => {
-                        console.log("AudioContext resumed successfully.");
-                        showMessage("Audio ready. Press play to continue.", 2000);
-                    }).catch(e => {
-                        console.error("Error resuming AudioContext after visibility change:", e);
-                        showMessage("Could not resume audio. Please press play.", 4000);
-                    });
-                }
-            }
-        }
 
         // --- Initial Setup ---
         if (window.AudioContext || window.webkitAudioContext) {

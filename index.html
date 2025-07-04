@@ -52,7 +52,6 @@
             --button-skip-disabled-text: #9ca3af; 
             --button-playlist-action-bg: #374151;
             --button-playlist-action-hover: #4b5563;
-            /* NEW: Styles for remove and clear buttons */
             --button-playlist-remove-bg: #ef4444;
             --button-playlist-remove-hover: #dc2626;
             --button-nav-bg: var(--bg-secondary);
@@ -210,7 +209,7 @@
         }
         
         #playlist-sidebar {
-            width: 300px; /* Slightly wider for controls */
+            width: 300px;
             flex-shrink: 0; 
             background-color: var(--bg-playlist);
             color: var(--text-primary);
@@ -219,11 +218,10 @@
             height: 100%; 
             overflow-y: auto; 
             border-left: 1px solid var(--border-playlist);
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-            display: flex; /* For flex layout of header and items */
-            flex-direction: column; /* Stack header and items vertically */
+            transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
         }
-        /* NEW: Playlist Header */
         #playlist-header {
             display: flex;
             justify-content: space-between;
@@ -232,12 +230,11 @@
             padding-bottom: 0.5rem;
             border-bottom: 1px solid var(--border-primary);
         }
-        #playlist-header h3 { /* Original h3, now part of header */
+        #playlist-header h3 {
             font-size: 1.125rem; 
             font-weight: 600; 
-            margin-bottom: 0; /* Removed default margin */
+            margin-bottom: 0;
         }
-        /* NEW: Clear playlist button style */
         #clear-playlist-button {
             background-color: var(--button-playlist-remove-bg);
             color: white;
@@ -259,20 +256,18 @@
             opacity: 0.7;
         }
 
-        /* NEW: Specific container for playlist items */
         #playlist-items-container {
-            flex-grow: 1; /* Allow this to fill remaining space and scroll */
+            flex-grow: 1;
             overflow-y: auto;
         }
 
         .playlist-item {
             display: flex;
-            /* justify-content: space-between; */ /* Adjusted for new layout */
             align-items: center;
             padding: 0.5rem 0.75rem;
             border-radius: 0.375rem; 
             margin-bottom: 0.25rem;
-            cursor: grab; /* For draggable items */
+            cursor: grab;
             transition: background-color 0.2s ease;
         }
         .playlist-item:hover {
@@ -290,13 +285,12 @@
             margin-right: 0.5rem;
             font-size: 0.875rem; 
         }
-        /* NEW: Container for play/remove buttons */
         .playlist-item-controls {
             display: flex;
             align-items: center;
-            gap: 0.3rem; /* Space between play and remove */
+            gap: 0.3rem;
         }
-        .playlist-item-button { /* Style for play button */
+        .playlist-item-button {
             background-color: var(--button-playlist-action-bg);
             color: var(--text-primary);
             border: 1px solid var(--border-secondary);
@@ -311,7 +305,6 @@
         .playlist-item-button:hover {
             background-color: var(--button-playlist-action-hover);
         }
-        /* NEW: Style for remove button */
         .playlist-item-remove-button {
             background-color: transparent; 
             color: var(--text-tertiary);
@@ -319,12 +312,12 @@
             padding: 0.25rem; 
             border-radius: 0.25rem;
             cursor: pointer;
-            font-size: 1rem; /* Make 'x' a bit larger */
+            font-size: 1rem;
             line-height: 1;
             transition: color 0.2s ease, background-color 0.2s ease;
         }
         .playlist-item-remove-button:hover {
-            color: var(--button-playlist-remove-bg); /* Red on hover */
+            color: var(--button-playlist-remove-bg);
         }
 
         #empty-playlist-message {
@@ -334,18 +327,17 @@
             font-style: italic;
         }
 
-        /* NEW: Drag and Drop Styles */
         .playlist-item.dragging {
             opacity: 0.5;
-            background-color: var(--bg-quaternary); /* Or a distinct dragging color */
+            background-color: var(--bg-quaternary);
         }
         .drop-target-above {
             border-top: 2px dashed var(--text-link);
-            margin-top: -2px; /* Adjust to keep spacing consistent */
+            margin-top: -2px;
         }
         .drop-target-below {
             border-bottom: 2px dashed var(--text-link);
-            margin-bottom: -2px; /* Adjust to keep spacing consistent */
+            margin-bottom: -2px;
         }
 
 
@@ -554,6 +546,93 @@
              color: var(--text-primary);
         }
 
+        /* NEW: Mobile Overlay */
+        #mobile-overlay {
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        /* NEW: Responsive Styles for Mobile */
+        @media (max-width: 640px) {
+            /* Main layout stacking */
+            #visualizer-page {
+                flex-direction: column !important;
+            }
+
+            /* --- Sidebar Overhaul for Mobile --- */
+            #info-sidebar, #playlist-sidebar {
+                width: 100vw !important;
+                max-width: 100vw !important;
+                height: 75vh;
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                top: unset !important;
+                transform: translateY(100%);
+                transition: transform 0.3s ease-in-out;
+                z-index: 1000;
+                border-left: none !important;
+                border-right: none !important;
+                border-top: 2px solid var(--border-primary);
+            }
+
+            /* Override info-sidebar's desktop transform and position */
+            #info-sidebar {
+                transform: translateY(100%);
+            }
+
+            /* The 'open' state for both sidebars */
+            #info-sidebar.open, #playlist-sidebar.open {
+                transform: translateY(0) !important;
+            }
+
+            /* --- UI Controls Adjustments --- */
+            #ui-container {
+                padding: 0.75rem;
+                backdrop-filter: blur(2px);
+            }
+
+            #controls-row {
+                gap: 0.5rem;
+            }
+
+            #controls-row h1 {
+                font-size: 1.125rem;
+                text-align: center;
+                width: 100%;
+            }
+            
+            #controls-row .flex.items-center.flex-wrap {
+                gap: 0.5rem;
+                justify-content: center;
+            }
+
+            #visualizerSelect, #fileUploadLabel, #playPauseButton, #skipBackButton, #skipForwardButton {
+                padding: 0.4rem 0.6rem;
+                font-size: 0.8rem;
+            }
+
+            #timeline-row {
+                gap: 0.5rem;
+            }
+            .time-display {
+                font-size: 0.75rem;
+            }
+
+            #volumeSlider {
+                width: 80px;
+            }
+            .volume-percent-display {
+                font-size: 0.75rem;
+            }
+            .db-display {
+                display: none;
+            }
+            
+            .playlist-item-name {
+                font-size: 0.8rem;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -561,7 +640,10 @@
     <nav>
         <div class="nav-left">
             <button id="menu-toggle-button" class="nav-button">Menu</button>
-            <a href="#visualizer" id="visualizer-nav-link" class="nav-link active-link">Visualizer</a>
+             <!-- This button is only shown on small screens -->
+            <button id="playlist-toggle-button" class="nav-button sm:hidden">Playlist</button>
+            <!-- This link is hidden on small screens -->
+            <a href="#visualizer" id="visualizer-nav-link" class="nav-link active-link hidden sm:inline-flex">Visualizer</a>
         </div>
         <div class="nav-right">
             <button id="theme-toggle" title="Toggle Theme"></button>
@@ -569,6 +651,7 @@
     </nav>
 
     <div id="info-sidebar">
+        <!-- Info sidebar content remains the same -->
         <div id="home-page-content" class="content-section">
             <div class="text-center mb-12">
                 <h1 class="text-4xl sm:text-5xl font-bold text-white mb-4">Experience Your Music</h1>
@@ -731,6 +814,9 @@
         </div>
         </div>
     <div id="message-box"></div>
+    <!-- NEW: Mobile overlay -->
+    <div id="mobile-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-[999] hidden"></div>
+
 
     <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
     <script type="importmap">
@@ -790,8 +876,8 @@
         let playlist = []; 
         let currentTrackIndex = -1; 
         let isLoadingTrack = false; 
-        let draggedItem = null; // For drag and drop
-        let dragOverItem = null; // For drag and drop target indication
+        let draggedItem = null;
+        let dragOverItem = null;
 
 
         // --- Waveform Lines specific variables ---
@@ -806,11 +892,15 @@
         const themeToggleButton = document.getElementById('theme-toggle');
         const menuToggleButton = document.getElementById('menu-toggle-button');
         const infoSidebar = document.getElementById('info-sidebar');
+        const playlistSidebar = document.getElementById('playlist-sidebar'); // Get playlist sidebar
         const homePageContent = document.getElementById('home-page-content');
         const aboutPageContent = document.getElementById('about-page-content');
         const infoSidebarNavButtons = document.querySelectorAll('.info-sidebar-nav-button');
         const launchVisualizerFromHomeButton = document.getElementById('launch-visualizer-from-home');
         const visualizerNavLink = document.getElementById('visualizer-nav-link');
+        // NEW Mobile Elements
+        const playlistToggleButton = document.getElementById('playlist-toggle-button');
+        const mobileOverlay = document.getElementById('mobile-overlay');
 
 
         const audioFileInput = document.getElementById('audioFile');
@@ -824,7 +914,7 @@
         const mainContentArea = document.getElementById('main-content-area'); 
         const playlistItemsContainer = document.getElementById('playlist-items-container');
         const emptyPlaylistMessage = document.getElementById('empty-playlist-message');
-        const clearPlaylistButton = document.getElementById('clear-playlist-button'); // NEW
+        const clearPlaylistButton = document.getElementById('clear-playlist-button');
         const messageBox = document.getElementById('message-box');
         const visualizerSelect = document.getElementById('visualizerSelect');
         const fileNameDisplay = document.getElementById('fileNameDisplay'); 
@@ -833,7 +923,7 @@
         const totalDurationDisplay = document.getElementById('totalDuration');
         const currentTimeAboutDisplay = document.getElementById('current-time-display-about'); 
 
-        // --- Theme Switching Logic (Same as original) ---
+        // --- Theme Switching Logic ---
         function applyTheme(theme) {
             if (theme === 'light') {
                 bodyElement.classList.add('light-mode');
@@ -854,16 +944,56 @@
         applyTheme(savedTheme);
         themeToggleButton.addEventListener('click', toggleTheme);
 
-        // --- Info Sidebar (Left Menu) Logic (Same as original) ---
-        function toggleInfoSidebar() {infoSidebar.classList.toggle('open'); const isExpanded = infoSidebar.classList.contains('open'); menuToggleButton.setAttribute('aria-expanded', isExpanded.toString());}
-        function openInfoSidebar() { infoSidebar.classList.add('open'); menuToggleButton.setAttribute('aria-expanded', 'true');}
-        function closeInfoSidebar() { infoSidebar.classList.remove('open'); menuToggleButton.setAttribute('aria-expanded', 'false');}
-        menuToggleButton.addEventListener('click', toggleInfoSidebar);
-        visualizerNavLink.addEventListener('click', (e) => {e.preventDefault(); closeInfoSidebar(); if (!isVisualizerInitialized) initVisualizer(); else onWindowResize();});
-        if(launchVisualizerFromHomeButton) {launchVisualizerFromHomeButton.addEventListener('click', () => {closeInfoSidebar(); if (!isVisualizerInitialized) initVisualizer(); else onWindowResize();});}
-        infoSidebarNavButtons.forEach(button => {button.addEventListener('click', () => {const targetId = button.dataset.infotarget; if(homePageContent) homePageContent.style.display = 'none'; if(aboutPageContent) aboutPageContent.style.display = 'none'; const targetSection = document.getElementById(targetId); if (targetSection) targetSection.style.display = 'block'; infoSidebarNavButtons.forEach(btn => btn.classList.remove('active-info-link')); button.classList.add('active-info-link'); if (targetId === 'about-page-content') updateTimeDisplay();});});
+        // --- MODIFIED: Sidebar Logic for Mobile Responsiveness ---
+        function openPlaylistSidebar() {
+            if (window.innerWidth < 640) { // Mobile logic
+                closeInfoSidebar(true); // Close other panel without hiding overlay
+                mobileOverlay.classList.remove('hidden');
+            }
+            playlistSidebar.classList.add('open');
+        }
 
-        // --- Update Range Input Fill (Same as original) ---
+        function closePlaylistSidebar(isChaining = false) {
+            playlistSidebar.classList.remove('open');
+            if (!isChaining && !infoSidebar.classList.contains('open')) {
+                mobileOverlay.classList.add('hidden');
+            }
+        }
+
+        function togglePlaylistSidebar() {
+            if (playlistSidebar.classList.contains('open')) {
+                closePlaylistSidebar();
+            } else {
+                openPlaylistSidebar();
+            }
+        }
+
+        function openInfoSidebar() {
+            if (window.innerWidth < 640) { // Mobile logic
+                closePlaylistSidebar(true); // Close other panel
+                mobileOverlay.classList.remove('hidden');
+            }
+            infoSidebar.classList.add('open');
+            menuToggleButton.setAttribute('aria-expanded', 'true');
+        }
+
+        function closeInfoSidebar(isChaining = false) {
+            infoSidebar.classList.remove('open');
+            menuToggleButton.setAttribute('aria-expanded', 'false');
+            if (!isChaining && !playlistSidebar.classList.contains('open')) {
+                mobileOverlay.classList.add('hidden');
+            }
+        }
+
+        function toggleInfoSidebar() {
+            if (infoSidebar.classList.contains('open')) {
+                closeInfoSidebar();
+            } else {
+                openInfoSidebar();
+            }
+        }
+        
+        // --- Update Range Input Fill ---
         function updateRangeInputFill(inputElement, type) {if (!inputElement) return; const value = parseFloat(inputElement.value) || 0; const min = parseFloat(inputElement.min) || 0; const max = parseFloat(inputElement.max) || 100; const percentage = ((value - min) / (max - min)) * 100; const computedStyle = getComputedStyle(inputElement);  const filledColor = computedStyle.getPropertyValue(type === 'volume' ? '--slider-thumb-volume' : '--slider-thumb-seek').trim(); const unfilledColor = computedStyle.getPropertyValue('--slider-track').trim(); inputElement.style.background = `linear-gradient(to right, ${filledColor} 0%, ${filledColor} ${percentage}%, ${unfilledColor} ${percentage}%, ${unfilledColor} 100%)`; inputElement.style.setProperty(type === 'volume' ? '--volume-percent' : '--seek-percent', `${percentage}%`);}
         function updateVolumePercentageDisplay() {if (volumeSlider && volumePercentageDisplay) {volumePercentageDisplay.textContent = `${volumeSlider.value}%`;}}
         function mapRange(value, inMin, inMax, outMin, outMax) {const clampedValue = Math.max(inMin, Math.min(value, inMax)); return ((clampedValue - inMin) * (outMax - outMin) / (inMax - inMin)) + outMin;}
@@ -928,16 +1058,30 @@
                     dbValueDisplay.textContent = "-∞ dB"; 
                     dbValueDisplay.classList.remove('active');
                 }
-                renderPlaylist(); // Initial render of (empty) playlist
+                renderPlaylist();
 
                 // Event listeners are added only once during initialization
                 if (!isVisualizerInitialized) { 
                     window.addEventListener('resize', onWindowResize, false);
+                    
+                    // Sidebar and Nav Listeners
+                    menuToggleButton.addEventListener('click', toggleInfoSidebar);
+                    playlistToggleButton.addEventListener('click', togglePlaylistSidebar);
+                    mobileOverlay.addEventListener('click', () => {
+                        closeInfoSidebar();
+                        closePlaylistSidebar();
+                    });
+                    visualizerNavLink.addEventListener('click', (e) => {e.preventDefault(); closeInfoSidebar(); if (!isVisualizerInitialized) initVisualizer(); else onWindowResize();});
+                    if(launchVisualizerFromHomeButton) {launchVisualizerFromHomeButton.addEventListener('click', () => {closeInfoSidebar(); if (!isVisualizerInitialized) initVisualizer(); else onWindowResize();});}
+                    infoSidebarNavButtons.forEach(button => {button.addEventListener('click', () => {const targetId = button.dataset.infotarget; if(homePageContent) homePageContent.style.display = 'none'; if(aboutPageContent) aboutPageContent.style.display = 'none'; const targetSection = document.getElementById(targetId); if (targetSection) targetSection.style.display = 'block'; infoSidebarNavButtons.forEach(btn => btn.classList.remove('active-info-link')); button.classList.add('active-info-link'); if (targetId === 'about-page-content') updateTimeDisplay();});});
+
+
+                    // Audio and Control Listeners
                     audioFileInput.addEventListener('change', handleFileSelect, false);
                     playPauseButton.addEventListener('click', togglePlayPause, false);
                     skipBackButton.addEventListener('click', handleSkipBack, false);
                     skipForwardButton.addEventListener('click', handleSkipForward, false);
-                    clearPlaylistButton.addEventListener('click', handleClearPlaylist); // NEW
+                    clearPlaylistButton.addEventListener('click', handleClearPlaylist);
 
                     volumeSlider.addEventListener('input', () => {
                         handleVolumeChange();
@@ -961,7 +1105,7 @@
                     });
                     seekBar.addEventListener('pointerleave', () => {});
 
-                    // NEW: Drag and Drop Event Listeners for Playlist
+                    // Drag and Drop Event Listeners for Playlist
                     playlistItemsContainer.addEventListener('dragstart', handleDragStart);
                     playlistItemsContainer.addEventListener('dragover', handleDragOver);
                     playlistItemsContainer.addEventListener('dragleave', handleDragLeave);
@@ -981,11 +1125,11 @@
             }
         }
 
-        // --- Time Formatting and UI Reset (Same as original) ---
+        // --- Time Formatting and UI Reset ---
         function formatTime(seconds) { if (isNaN(seconds) || seconds < 0) return '0:00'; const minutes = Math.floor(seconds / 60); const secs = Math.floor(seconds % 60); return `${minutes}:${secs < 10 ? '0' : ''}${secs}`; }
         function resetTimelineUI() { seekBar.value = 0; seekBar.disabled = true; currentTimeDisplay.textContent = '0:00'; totalDurationDisplay.textContent = '0:00'; updateRangeInputFill(seekBar, 'seek'); }
         
-        // --- Visualizer Geometry Setup and Clearing (Same as original) ---
+        // --- Visualizer Geometry Setup and Clearing ---
         function setupVisualizerGeometry() {clearVisualizerGeometry(); switch (currentVisualizerType) {case VisualizerType.BARS: createBarsVisualizer(); if(controls) controls.target.set(0, 25, 0); camera.position.set(0, 50, 180); break; case VisualizerType.CIRCLE: createCircleVisualizer(); if(controls) controls.target.set(0, 0, 0); camera.position.set(0, 0, 180); break; case VisualizerType.WAVEFORM_LINES: createWaveformLinesVisualizer(); if(controls) controls.target.set(0, WF_VERTICAL_SCALE * 0.1, -WF_Z_SPREAD * 0.2); camera.position.set(0, WF_VERTICAL_SCALE * 0.5, WF_Z_SPREAD * 0.8); break; default: createBarsVisualizer(); if(controls) controls.target.set(0, 25, 0); camera.position.set(0, 50, 180);} if (controls) controls.update();}
         function clearVisualizerGeometry() {currentVisualizerObjects.forEach(obj => {if (obj) {if (obj.geometry) obj.geometry.dispose(); if (obj.material) {if (Array.isArray(obj.material)) {obj.material.forEach(m => m.dispose());} else {obj.material.dispose();}} if (scene) scene.remove(obj);}}); currentVisualizerObjects = []; wfGeometry = null; wfMaterial = null; wfLineSegments = null; wfFrequencyHistory = []; wfPreviousYValues = [];}
         function handleVisualizerChange(event) {currentVisualizerType = event.target.value; setupVisualizerGeometry();}
@@ -993,24 +1137,24 @@
         function createCircleVisualizer() {if (!scene) return; const radius = 50, barWidth = 1.5, barDepth = 5; const material = new THREE.MeshPhongMaterial({ specular: 0x555555, shininess: 30, vertexColors: true }); for (let i = 0; i < NUM_BINS; i++) {const angle = (i / NUM_BINS) * Math.PI * 2; const geometry = new THREE.BoxGeometry(barWidth, 1, barDepth); geometry.translate(0, 0.5, 0); const colors = []; const color = new THREE.Color(); for (let j = 0; j < geometry.attributes.position.count; j++) {color.setHSL(i / NUM_BINS, 1.0, 0.5); colors.push(color.r, color.g, color.b);} geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3)); const cube = new THREE.Mesh(geometry, material); cube.position.set(radius * Math.cos(angle), 0, radius * Math.sin(angle)); cube.lookAt(0, 0, 0); scene.add(cube); currentVisualizerObjects.push(cube);}}
         function createWaveformLinesVisualizer() {if (!scene) return; wfGeometry = new THREE.BufferGeometry(); const totalVertices = WF_NUM_LINES * WF_LINE_LENGTH; const positions = new Float32Array(totalVertices * 3); const colors = new Float32Array(totalVertices * 3); const indices = []; const color = new THREE.Color(); wfFrequencyHistory = []; wfPreviousYValues = []; for (let i = 0; i < WF_NUM_LINES; i++) {wfFrequencyHistory.push(new Uint8Array(WF_LINE_LENGTH).fill(0)); wfPreviousYValues.push(new Float32Array(WF_LINE_LENGTH).fill(0));} for (let lineIndex = 0; lineIndex < WF_NUM_LINES; lineIndex++) {for (let pointIndex = 0; pointIndex < WF_LINE_LENGTH; pointIndex++) {const vertexIndex = lineIndex * WF_LINE_LENGTH + pointIndex; const i3 = vertexIndex * 3; const x = (pointIndex / (WF_LINE_LENGTH - 1) - 0.5) * WF_X_SPREAD; const y = 0; const z = (lineIndex / (WF_NUM_LINES - 1) - 0.5) * WF_Z_SPREAD; positions[i3] = x; positions[i3 + 1] = y; positions[i3 + 2] = z; color.setHSL(pointIndex / WF_LINE_LENGTH, WF_COLOR_SATURATION, WF_COLOR_LIGHTNESS * 0.5); colors[i3] = color.r; colors[i3 + 1] = color.g; colors[i3 + 2] = color.b; if (pointIndex < WF_LINE_LENGTH - 1) {indices.push(vertexIndex, vertexIndex + 1);}}} wfGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3)); wfGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3)); wfGeometry.setIndex(indices); wfMaterial = new THREE.LineBasicMaterial({ vertexColors: true }); wfLineSegments = new THREE.LineSegments(wfGeometry, wfMaterial); scene.add(wfLineSegments); currentVisualizerObjects.push(wfLineSegments);}
 
-        // --- Playlist Rendering and Management (NEW and MODIFIED) ---
+        // --- Playlist Rendering and Management ---
         function renderPlaylist() {
             if (!playlistItemsContainer || !emptyPlaylistMessage || !clearPlaylistButton) return;
-            playlistItemsContainer.innerHTML = ''; // Clear previous items
+            playlistItemsContainer.innerHTML = '';
 
             if (playlist.length === 0) {
                 emptyPlaylistMessage.style.display = 'block';
                 playlistItemsContainer.appendChild(emptyPlaylistMessage);
-                clearPlaylistButton.disabled = true; // Disable clear button if playlist is empty
+                clearPlaylistButton.disabled = true;
             } else {
                 emptyPlaylistMessage.style.display = 'none';
-                clearPlaylistButton.disabled = false; // Enable clear button
+                clearPlaylistButton.disabled = false;
 
                 playlist.forEach((track, index) => {
                     const itemDiv = document.createElement('div');
                     itemDiv.classList.add('playlist-item');
-                    itemDiv.dataset.index = index; // Store index for drag/drop and removal
-                    itemDiv.setAttribute('draggable', 'true'); // Make item draggable
+                    itemDiv.dataset.index = index;
+                    itemDiv.setAttribute('draggable', 'true');
 
                     if (index === currentTrackIndex) {
                         itemDiv.classList.add('active-track');
@@ -1021,7 +1165,6 @@
                     nameSpan.textContent = track.name;
                     nameSpan.title = track.name;
 
-                    // Controls container for play and remove buttons
                     const controlsDiv = document.createElement('div');
                     controlsDiv.classList.add('playlist-item-controls');
 
@@ -1029,7 +1172,7 @@
                     trackPlayPauseButton.classList.add('playlist-item-button');
                     trackPlayPauseButton.textContent = (index === currentTrackIndex && isPlaying) ? 'Pause' : 'Play';
                     trackPlayPauseButton.addEventListener('click', (e) => {
-                        e.stopPropagation(); // Prevent drag start if clicking button
+                        e.stopPropagation();
                         if (isLoadingTrack) return;
                         if (index === currentTrackIndex) {
                             togglePlayPause();
@@ -1038,13 +1181,12 @@
                         }
                     });
 
-                    // Remove button for each track
                     const removeButton = document.createElement('button');
                     removeButton.classList.add('playlist-item-remove-button');
-                    removeButton.innerHTML = '&times;'; // 'x' symbol
+                    removeButton.innerHTML = '&times;';
                     removeButton.title = 'Remove track';
                     removeButton.addEventListener('click', (e) => {
-                        e.stopPropagation(); // Prevent drag start
+                        e.stopPropagation();
                         removeTrack(index);
                     });
 
@@ -1058,14 +1200,13 @@
             }
         }
 
-        // NEW: Function to remove a track
         function removeTrack(indexToRemove) {
             if (indexToRemove < 0 || indexToRemove >= playlist.length) return;
 
             const removedTrackIsCurrent = (indexToRemove === currentTrackIndex);
             const wasPlayingWhenRemoved = removedTrackIsCurrent && isPlaying; 
 
-            playlist.splice(indexToRemove, 1); // Remove track from array
+            playlist.splice(indexToRemove, 1);
 
             if (removedTrackIsCurrent) {
                 if (audio && audio.isPlaying) { 
@@ -1076,30 +1217,23 @@
                 resetTimelineUI();
 
                 if (playlist.length > 0) {
-                    // Adjust currentTrackIndex: if the removed was last, it might be out of bounds.
-                    // Or, if it was the first, the new first is at the same index (0).
                     currentTrackIndex = Math.min(indexToRemove, playlist.length - 1); 
                     
-                    if (wasPlayingWhenRemoved) { // If it was playing, auto-play the new current track
+                    if (wasPlayingWhenRemoved) {
                          loadTrack(currentTrackIndex, true);
                     } else {
-                        // Just update the UI to reflect the new current track (highlighting)
-                        // but don't auto-play. The main play/pause button state should also update.
                         updatePlayPauseButton(false); 
                     }
-                } else { // Playlist is now empty
+                } else {
                     currentTrackIndex = -1;
-                    resetUIOnError(); // Full reset for empty playlist
+                    resetUIOnError();
                 }
             } else if (indexToRemove < currentTrackIndex) {
-                currentTrackIndex--; // Adjust current track index if a track before it was removed
+                currentTrackIndex--;
             }
             
-            // Always re-render and update states
             renderPlaylist();
             updateSkipButtonsState();
-            // Update main play/pause button if the removed track was not the current one, 
-            // or if it was and the playlist is now empty/state changed.
             if (!removedTrackIsCurrent || playlist.length === 0) {
                 updatePlayPauseButton(isPlaying); 
             }
@@ -1111,7 +1245,6 @@
             }
         }
 
-        // NEW: Function to clear the entire playlist
         function handleClearPlaylist() {
             if (playlist.length === 0) return;
 
@@ -1123,30 +1256,27 @@
             playlist = [];
             currentTrackIndex = -1;
             
-            resetUIOnError(); // Resets timeline, buttons, etc.
-            renderPlaylist(); // Will show empty message and disable clear button
+            resetUIOnError();
+            renderPlaylist();
             showMessage("Playlist cleared.", 3000);
             fileNameDisplay.textContent = '';
             fileNameDisplay.title = 'No file selected';
         }
 
-        // MODIFIED: handleFileSelect to append to playlist
         function handleFileSelect(event) {
             if (!audioContext) { showMessage("Audio system not ready.", 4000); return; }
             const files = event.target.files; 
             if (!files || files.length === 0) {
-                // No new files selected, do nothing to the existing playlist
-                audioFileInput.value = null; // Still reset input
+                audioFileInput.value = null;
                 return;
             }
 
             let newFilesAdded = false;
-            const newTracks = []; // Store newly added tracks temporarily
+            const newTracks = [];
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 if (file.type.startsWith('audio/mpeg') || file.name.toLowerCase().endsWith('.mp3')) {
-                    // Add a unique ID for potential future use (e.g., if we need stable keys for React-like rendering)
                     newTracks.push({ file: file, name: file.name, uniqueId: Date.now() + Math.random().toString(36).substr(2, 9) });
                     newFilesAdded = true;
                 } else {
@@ -1155,19 +1285,19 @@
             }
 
             if (!newFilesAdded) {
-                if (playlist.length === 0) { // Only show "no valid" if playlist was already empty
+                if (playlist.length === 0) {
                      showMessage("No valid MP3 files selected to add.", 4000);
                      resetUIOnError(); 
                      fileNameDisplay.textContent = '';
                      fileNameDisplay.title = 'No valid MP3s';
                 }
-                audioFileInput.value = null; // Reset file input
+                audioFileInput.value = null;
                 return;
             }
             
-            playlist = playlist.concat(newTracks); // Append new tracks
+            playlist = playlist.concat(newTracks);
 
-            fileNameDisplay.textContent = ''; // Clear top filename display
+            fileNameDisplay.textContent = '';
             fileNameDisplay.title = `Playlist: ${playlist.length} track(s)`;
             
             const shouldAutoLoadFirstNew = currentTrackIndex === -1 && playlist.length > 0;
@@ -1179,7 +1309,7 @@
                      if (playlist.length === newTracks.length) resetUIOnError(); 
                  }).then(() => {
                     if (shouldAutoLoadFirstNew) {
-                        currentTrackIndex = playlist.length - newTracks.length; // Index of the first newly added track
+                        currentTrackIndex = playlist.length - newTracks.length;
                         loadTrack(currentTrackIndex); 
                     }
                  });
@@ -1192,10 +1322,9 @@
             updateSkipButtonsState();
             renderPlaylist(); 
             showMessage(`${newTracks.length} track(s) added to playlist.`, 2500);
-            audioFileInput.value = null; // Reset file input to allow re-selecting same file
+            audioFileInput.value = null;
         }
 
-        // MODIFIED: loadTrack to handle potential empty playlist after an error
         function loadTrack(index, autoPlay = false) {
             if (isLoadingTrack || index < 0 || index >= playlist.length) {
                 if (index >= playlist.length && playlist.length > 0) { 
@@ -1204,7 +1333,7 @@
                     updatePlayPauseButton(false); 
                     resetTimelineUI();
                     fileNameDisplay.textContent = "";
-                } else if (playlist.length === 0) { // Handle case where playlist became empty
+                } else if (playlist.length === 0) {
                     resetUIOnError();
                 }
                 isLoadingTrack = false; 
@@ -1213,9 +1342,9 @@
                 return;
             }
             isLoadingTrack = true;
-            currentTrackIndex = index; // Set current track index immediately for UI feedback
+            currentTrackIndex = index;
             updateSkipButtonsState(); 
-            renderPlaylist(); // Re-render to highlight the track being loaded
+            renderPlaylist();
 
             const track = playlist[index];
 
@@ -1250,16 +1379,13 @@
 
             const reader = new FileReader();
             reader.onload = (e) => {
-                // Ensure the track we are decoding is still the one we intended to load
-                // This handles cases where the playlist might have been modified (e.g., track removed) while reading
                 if (playlist[currentTrackIndex] === track) {
                     decodeAudio(e.target.result, track.name, autoPlay);
                 } else {
                     console.warn("Track changed during file read, aborting decode for old track.");
-                    isLoadingTrack = false; // Allow next load
-                    // Potentially, if currentTrackIndex is now invalid, reset or load a valid one
+                    isLoadingTrack = false;
                     if (currentTrackIndex >= playlist.length && playlist.length > 0) {
-                        currentTrackIndex = playlist.length -1; // Go to last valid track
+                        currentTrackIndex = playlist.length -1;
                         loadTrack(currentTrackIndex, autoPlay);
                     } else if (playlist.length === 0) {
                         resetUIOnError();
@@ -1270,7 +1396,7 @@
                 console.error('FileReader error:', e);
                 showMessage(`Error reading file: ${track.name}`, 5000);
                 isLoadingTrack = false; 
-                if (playlist[currentTrackIndex] === track) { // Only proceed if this is still the current track to handle
+                if (playlist[currentTrackIndex] === track) {
                     if (currentTrackIndex + 1 < playlist.length) {
                         loadTrack(currentTrackIndex + 1, autoPlay); 
                     } else {
@@ -1283,19 +1409,15 @@
             reader.readAsArrayBuffer(track.file);
         }
 
-        // MODIFIED: decodeAudio for more robust error handling
         function decodeAudio(arrayBuffer, fileName, autoPlayAfterDecode = false) {
              if (!audioContext || !audio) {
                  resetUIOnError(); isLoadingTrack = false; return;
              }
             audioContext.decodeAudioData(arrayBuffer).then(buffer => {
-                // Check if the track intended for this buffer is still the current one
                 if (currentTrackIndex === -1 || !playlist[currentTrackIndex] || playlist[currentTrackIndex].name !== fileName) {
                     console.warn(`Decoded audio for ${fileName}, but it's no longer the current track. Aborting setup.`);
                     isLoadingTrack = false;
-                    // If another track is now current and loading, let its process continue.
-                    // Otherwise, ensure UI is consistent.
-                    if (!isLoadingTrack) { // If no other track took over loading
+                    if (!isLoadingTrack) {
                         updatePlayPauseButton(isPlaying);
                         updateSkipButtonsState();
                         renderPlaylist();
@@ -1304,7 +1426,7 @@
                 }
 
                 if (audioSource && audioSource.buffer) {
-                    try { audioSource.disconnect(); } catch (e) { /* ignore */ }
+                    try { audioSource.disconnect(); } catch (e) {}
                 }
                 audio.setBuffer(buffer);
                 audio.setVolume(volumeSlider.value / 100);
@@ -1353,7 +1475,6 @@
             });
         }
 
-        // MODIFIED: resetUIOnError for better message
         function resetUIOnError() {  
             playPauseButton.disabled = true;
             updatePlayPauseButton(false); 
@@ -1372,32 +1493,32 @@
                 lastDbUpdateTime = 0; if(dbTimeoutId) clearTimeout(dbTimeoutId);
             }
             pauseTime = 0; isSeeking = false;
-            if (audio && audio.isPlaying) try { audio.stop(); } catch(e) { /* ignore */ }
+            if (audio && audio.isPlaying) try { audio.stop(); } catch(e) {}
             if (audio && audio.buffer) audio.setBuffer(null); 
             updateSkipButtonsState(); 
             renderPlaylist(); 
         }
 
-        // --- Audio Controls (Play/Pause, Volume, Seek, Skip - Largely same as original, with playlist context) ---
-        function togglePlayPause() { /* ... Same as original, but ensure playlist context is handled ... */ 
+        // --- Audio Controls ---
+        function togglePlayPause() {
             if (!isVisualizerInitialized) { showMessage("Visualizer not active/ready.", 3000); return; }
             if (isLoadingTrack) { showMessage("Track is loading...", 2000); return; }
-            if (currentTrackIndex < 0 && playlist.length > 0) { loadTrack(0, true); return; } // Play first if none selected
+            if (currentTrackIndex < 0 && playlist.length > 0) { loadTrack(0, true); return; }
             if (!audio || !audio.buffer || !hasAudioContextStarted || currentTrackIndex < 0) { showMessage("Load MP3(s) first.", 3000); return; }
             if (audioContext.state === 'suspended') { audioContext.resume().catch(err => { console.error("Failed to resume AudioContext on play/pause:", err); showMessage("Could not start audio. Please interact with the page and try again.", 4000); }).then(() => { if (isPlaying) pauseAudio(); else playAudio(); });
             } else { if (isPlaying) pauseAudio(); else playAudio(); }
         }
-        function playAudio() { /* ... Same as original ... */ 
+        function playAudio() {
             if (!audio || !audio.buffer || isPlaying || isLoadingTrack) return; 
             try { audio.offset = pauseTime; audio.play(); startTime = audio.context.currentTime - pauseTime; isPlaying = true; updatePlayPauseButton(true); renderPlaylist(); startAnimationLoop(); } 
             catch (e) { console.error("Error playing audio:", e); showMessage("Error starting playback.", 4000); resetUIOnError(); }
         }
-        function pauseAudio() { /* ... Same as original ... */ 
+        function pauseAudio() {
              if (!audio || !audio.buffer || !isPlaying) return; 
              try { const currentElapsedTime = audio.context.currentTime - startTime; pauseTime = currentElapsedTime; if (audio.buffer && pauseTime > audio.buffer.duration) pauseTime = audio.buffer.duration; else if (pauseTime < 0) pauseTime = 0; audio.pause(); isPlaying = false; updatePlayPauseButton(false); renderPlaylist(); } 
              catch (e) { console.error("Error pausing audio:", e); showMessage("Error pausing playback.", 4000); }
         }
-        function updatePlayPauseButton(playing, loading = false) { /* ... Same as original, but reflects playlist state ... */ 
+        function updatePlayPauseButton(playing, loading = false) {
             playPauseButton.classList.remove(...playButtonStateClasses, ...pauseButtonStateClasses, ...loadingButtonStateClasses, 'cursor-not-allowed');
             if (loading) { playPauseButton.textContent = "Loading..."; playPauseButton.classList.add(...loadingButtonStateClasses, 'cursor-not-allowed'); } 
             else if (playing) { playPauseButton.textContent = "Pause"; playPauseButton.classList.add(...pauseButtonStateClasses); } 
@@ -1407,18 +1528,17 @@
         }
         function handleVolumeChange() { if (audio) audio.setVolume(volumeSlider.value / 100); }
         function handleSeekInput() { if (!audio || !audio.buffer || !hasAudioContextStarted || !isSeeking) return; currentTimeDisplay.textContent = formatTime(parseFloat(seekBar.value)); }
-        function handleSeekChange() { /* ... Same as original ... */ 
+        function handleSeekChange() {
             if (!audio || !audio.buffer || !hasAudioContextStarted) return; isSeeking = false; const seekTime = parseFloat(seekBar.value); pauseTime = seekTime; currentTimeDisplay.textContent = formatTime(seekTime); 
             if (isPlaying) { try { audio.stop(); audio.offset = seekTime; audio.play(); startTime = audio.context.currentTime - seekTime; } catch (e) { console.error("Error seeking while playing:", e); showMessage("Error seeking.", 3000); resetUIOnError(); }} 
             else audio.offset = seekTime;
         }
-        // MODIFIED: Skip functions to loop
         function handleSkipForward() {
             if (isLoadingTrack || playlist.length === 0) return; 
             let nextIndex = (currentTrackIndex + 1);
-            if (currentTrackIndex === -1 && playlist.length > 0) { // If no track was selected, start from first
+            if (currentTrackIndex === -1 && playlist.length > 0) {
                 nextIndex = 0;
-            } else if (nextIndex >= playlist.length && playlist.length > 0) { // Loop to beginning if at end
+            } else if (nextIndex >= playlist.length && playlist.length > 0) {
                  showMessage("Reached end of playlist, looping to start.", 2000);
                  nextIndex = 0;
             }
@@ -1430,9 +1550,9 @@
         function handleSkipBack() {
             if (isLoadingTrack || playlist.length === 0) return;
             let prevIndex = currentTrackIndex - 1;
-            if (currentTrackIndex === -1 && playlist.length > 0) { // If no track was selected, start from last
+            if (currentTrackIndex === -1 && playlist.length > 0) {
                 prevIndex = playlist.length - 1;
-            } else if (prevIndex < 0 && playlist.length > 0) { // Loop to end if at beginning
+            } else if (prevIndex < 0 && playlist.length > 0) {
                 showMessage("Reached start of playlist, looping to end.", 2000);
                 prevIndex = playlist.length - 1;
             }
@@ -1441,7 +1561,6 @@
             pauseTime = 0; 
             loadTrack(prevIndex, playAfterSkip); 
         }
-        // MODIFIED: Skip button state to allow looping
         function updateSkipButtonsState() {
             if (!skipBackButton || !skipForwardButton) return;
             const canSkip = playlist.length > 0 && !isLoadingTrack;
@@ -1449,12 +1568,12 @@
             skipForwardButton.disabled = !canSkip;
         }
 
-        // --- Animation Loop and Visualizer Updates (Largely same as original) ---
+        // --- Animation Loop and Visualizer Updates ---
         function startAnimationLoop() { if (animationFrameId === null) animate(); } 
         function stopAnimationLoop() { if (animationFrameId !== null) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }}
         function pauseVisualizer() { if (isPlaying) pauseAudio();  } 
         function resumeVisualizer() { onWindowResize(); startAnimationLoop(); }
-        function animate() { /* ... Same as original, but ensure playlist end handling is robust ... */ 
+        function animate() {
             animationFrameId = requestAnimationFrame(animate);
             if (!isVisualizerInitialized || !renderer || !scene || !camera) return; 
             controls.update(); bodyElement.classList.toggle('dynamic-bg-transition', isPlaying);
@@ -1470,7 +1589,7 @@
                      if (!isSeeking) { seekBar.value = audio.buffer.duration; updateRangeInputFill(seekBar, 'seek'); currentTimeDisplay.textContent = formatTime(audio.buffer.duration); }
                      renderPlaylist(); 
                      if (currentTrackIndex < playlist.length - 1) { showMessage(`Finished. Loading next...`, 1500); loadTrack(currentTrackIndex + 1, true); } 
-                     else { showMessage("Playlist finished. Loop with skip buttons.", 4000); currentTrackIndex = -1; updatePlayPauseButton(false); updateSkipButtonsState(); fileNameDisplay.textContent = ""; resetTimelineUI(); renderPlaylist(); } // Modified message for looping
+                     else { showMessage("Playlist finished. Loop with skip buttons.", 4000); currentTrackIndex = -1; updatePlayPauseButton(false); updateSkipButtonsState(); fileNameDisplay.textContent = ""; resetTimelineUI(); renderPlaylist(); }
                  }
             } else if (isVisualizerInitialized) {
                  resetVisualizers(); 
@@ -1479,26 +1598,24 @@
             }
             renderer.render(scene, camera);
         }
-        function updateDbDisplay(averageIntensity) { /* ... Same as original ... */ if (!dbValueDisplay) return; let dbValue; if (averageIntensity < 1) dbValue = "-∞"; else { const normalizedIntensity = Math.max(0, Math.log10(averageIntensity / 2.55 + 1) / Math.log10(101)); dbValue = mapRange(normalizedIntensity, 0, 1, DB_MIN, DB_MAX).toFixed(1); } dbValueDisplay.textContent = `${dbValue} dB`; dbValueDisplay.classList.add('active'); if (dbTimeoutId) clearTimeout(dbTimeoutId); dbTimeoutId = setTimeout(() => dbValueDisplay.classList.remove('active'), 500); }
-        function updateBarsVisualizer(data) { /* ... Same as original ... */ const maxHeight = 80; currentVisualizerObjects.forEach((cube, i) => { if (!cube || !(cube instanceof THREE.Mesh) || i >= data.length) return; const value = data[i]; const height = (value / 255) * maxHeight + 0.1; const targetScaleY = Math.max(0.1, height); cube.scale.y += (targetScaleY - cube.scale.y) * 0.2; const hue = (i / NUM_BINS) * 0.7; const sat = 1.0; const light = Math.max(0.2, value / 255); const colors = cube.geometry.attributes.color; const color = new THREE.Color(); color.setHSL(hue, sat, light); for (let j = 0; j < colors.count; j++) colors.setXYZ(j, color.r, color.g, color.b); colors.needsUpdate = true; });}
-        function updateCircleVisualizer(data) { /* ... Same as original ... */ const maxHeight = 60; currentVisualizerObjects.forEach((cube, i) => { if (!cube || !(cube instanceof THREE.Mesh) || i >= data.length) return; const value = data[i]; const height = (value / 255) * maxHeight + 0.1; const targetScaleY = Math.max(0.1, height); cube.scale.y += (targetScaleY - cube.scale.y) * 0.2; const hue = (i / NUM_BINS) * 1.0; const sat = 1.0; const light = Math.max(0.2, value / 255); const colors = cube.geometry.attributes.color; const color = new THREE.Color(); color.setHSL(hue, sat, light); for (let j = 0; j < colors.count; j++) colors.setXYZ(j, color.r, color.g, color.b); colors.needsUpdate = true;});}
-        function updateWaveformLinesVisualizer(data) { /* ... Same as original ... */ if (!wfGeometry || !wfGeometry.attributes.position || wfFrequencyHistory.length === 0 || wfPreviousYValues.length === 0) return; for (let i = WF_NUM_LINES - 1; i > 0; i--) { if (wfFrequencyHistory[i] && wfFrequencyHistory[i-1]) wfFrequencyHistory[i].set(wfFrequencyHistory[i - 1]); if (wfPreviousYValues[i] && wfPreviousYValues[i-1]) wfPreviousYValues[i].set(wfPreviousYValues[i - 1]); } if (wfFrequencyHistory[0] && data.length === WF_LINE_LENGTH) wfFrequencyHistory[0].set(data); else if (data.length !== WF_LINE_LENGTH) { console.warn(`Data length mismatch`); return; } const positions = wfGeometry.attributes.position; const colors = wfGeometry.attributes.color; const color = new THREE.Color(); for (let lineIndex = 0; lineIndex < WF_NUM_LINES; lineIndex++) { if (!wfFrequencyHistory[lineIndex] || !wfPreviousYValues[lineIndex]) continue; for (let pointIndex = 0; pointIndex < WF_LINE_LENGTH; pointIndex++) { const vertexIndex = lineIndex * WF_LINE_LENGTH + pointIndex; const freqValue = wfFrequencyHistory[lineIndex][pointIndex]; const targetY = (freqValue / 255.0) * WF_VERTICAL_SCALE; const previousY = wfPreviousYValues[lineIndex][pointIndex]; const smoothedY = previousY * WF_SMOOTHING_FACTOR + targetY * (1 - WF_SMOOTHING_FACTOR); wfPreviousYValues[lineIndex][pointIndex] = smoothedY; positions.setY(vertexIndex, smoothedY); const hue = pointIndex / WF_LINE_LENGTH; const lightness = Math.max(0.1, Math.min(1.0, (freqValue / 255.0) * 1.5 * WF_COLOR_LIGHTNESS)); color.setHSL(hue, WF_COLOR_SATURATION, lightness); colors.setXYZ(vertexIndex, color.r, color.g, color.b); } } positions.needsUpdate = true; colors.needsUpdate = true;}
-        function updateBackgroundColor(averageIntensity) { /* ... Same as original ... */ if (!isPlaying) return; const hue = 0.6 + (averageIntensity / 255) * 0.15; const sat = 0.6; const light = (currentTheme === 'light' ? 0.85 : 0.1) + (averageIntensity / 255) * (currentTheme === 'light' ? 0.10 : 0.10); bodyElement.style.backgroundColor = `hsl(${hue * 360}, ${sat * 100}%, ${light * 100}%)`;}
-        function resetVisualizers() { /* ... Same as original ... */ let needsColorUpdate = false; let needsPosUpdate = false; currentVisualizerObjects.forEach(obj => { if (obj instanceof THREE.Mesh && obj.geometry && obj.scale) { const targetScaleY = 0.1; obj.scale.y += (targetScaleY - obj.scale.y) * WF_RESET_LERP_FACTOR; if (obj.geometry.attributes.color) { const colors = obj.geometry.attributes.color; const targetColor = new THREE.Color(currentTheme === 'light' ? 0xaaaaaa : 0x555555); const currentColor = new THREE.Color(); for (let j = 0; j < colors.count; j++) { currentColor.fromBufferAttribute(colors, j); currentColor.lerp(targetColor, WF_RESET_LERP_FACTOR); colors.setXYZ(j, currentColor.r, currentColor.g, currentColor.b); } colors.needsUpdate = true; }} else if (obj === wfLineSegments && wfGeometry && wfGeometry.attributes.position && wfGeometry.attributes.color && wfPreviousYValues.length > 0) { const positions = wfGeometry.attributes.position; const colors = wfGeometry.attributes.color; const targetColor = new THREE.Color(currentTheme === 'light' ? 0xcccccc : 0x444444); const currentColor = new THREE.Color(); for (let lineIndex = 0; lineIndex < WF_NUM_LINES; lineIndex++) { if (!wfPreviousYValues[lineIndex]) continue; for (let pointIndex = 0; pointIndex < WF_LINE_LENGTH; pointIndex++) { const vertexIndex = lineIndex * WF_LINE_LENGTH + pointIndex; const currentY = positions.getY(vertexIndex); const targetY = 0; const newY = currentY + (targetY - currentY) * WF_RESET_LERP_FACTOR; positions.setY(vertexIndex, newY); wfPreviousYValues[lineIndex][pointIndex] = newY; currentColor.fromBufferAttribute(colors, vertexIndex); currentColor.lerp(targetColor, WF_RESET_LERP_FACTOR); colors.setXYZ(vertexIndex, currentColor.r, currentColor.g, currentColor.b); } } needsPosUpdate = true; needsColorUpdate = true; }}); if (needsPosUpdate && wfGeometry && wfGeometry.attributes.position) wfGeometry.attributes.position.needsUpdate = true; if (needsColorUpdate && wfGeometry && wfGeometry.attributes.color) wfGeometry.attributes.color.needsUpdate = true;}
-        function onWindowResize() { /* ... Same as original ... */ if (!isVisualizerInitialized || !camera || !renderer || !mainContentArea) return; const newWidth = mainContentArea.clientWidth; const newHeight = mainContentArea.clientHeight; camera.aspect = newWidth / newHeight; camera.updateProjectionMatrix(); renderer.setSize(newWidth, newHeight); }
+        function updateDbDisplay(averageIntensity) { if (!dbValueDisplay) return; let dbValue; if (averageIntensity < 1) dbValue = "-∞"; else { const normalizedIntensity = Math.max(0, Math.log10(averageIntensity / 2.55 + 1) / Math.log10(101)); dbValue = mapRange(normalizedIntensity, 0, 1, DB_MIN, DB_MAX).toFixed(1); } dbValueDisplay.textContent = `${dbValue} dB`; dbValueDisplay.classList.add('active'); if (dbTimeoutId) clearTimeout(dbTimeoutId); dbTimeoutId = setTimeout(() => dbValueDisplay.classList.remove('active'), 500); }
+        function updateBarsVisualizer(data) { const maxHeight = 80; currentVisualizerObjects.forEach((cube, i) => { if (!cube || !(cube instanceof THREE.Mesh) || i >= data.length) return; const value = data[i]; const height = (value / 255) * maxHeight + 0.1; const targetScaleY = Math.max(0.1, height); cube.scale.y += (targetScaleY - cube.scale.y) * 0.2; const hue = (i / NUM_BINS) * 0.7; const sat = 1.0; const light = Math.max(0.2, value / 255); const colors = cube.geometry.attributes.color; const color = new THREE.Color(); color.setHSL(hue, sat, light); for (let j = 0; j < colors.count; j++) colors.setXYZ(j, color.r, color.g, color.b); colors.needsUpdate = true; });}
+        function updateCircleVisualizer(data) { const maxHeight = 60; currentVisualizerObjects.forEach((cube, i) => { if (!cube || !(cube instanceof THREE.Mesh) || i >= data.length) return; const value = data[i]; const height = (value / 255) * maxHeight + 0.1; const targetScaleY = Math.max(0.1, height); cube.scale.y += (targetScaleY - cube.scale.y) * 0.2; const hue = (i / NUM_BINS) * 1.0; const sat = 1.0; const light = Math.max(0.2, value / 255); const colors = cube.geometry.attributes.color; const color = new THREE.Color(); color.setHSL(hue, sat, light); for (let j = 0; j < colors.count; j++) colors.setXYZ(j, color.r, color.g, color.b); colors.needsUpdate = true;});}
+        function updateWaveformLinesVisualizer(data) { if (!wfGeometry || !wfGeometry.attributes.position || wfFrequencyHistory.length === 0 || wfPreviousYValues.length === 0) return; for (let i = WF_NUM_LINES - 1; i > 0; i--) { if (wfFrequencyHistory[i] && wfFrequencyHistory[i-1]) wfFrequencyHistory[i].set(wfFrequencyHistory[i - 1]); if (wfPreviousYValues[i] && wfPreviousYValues[i-1]) wfPreviousYValues[i].set(wfPreviousYValues[i - 1]); } if (wfFrequencyHistory[0] && data.length === WF_LINE_LENGTH) wfFrequencyHistory[0].set(data); else if (data.length !== WF_LINE_LENGTH) { console.warn(`Data length mismatch`); return; } const positions = wfGeometry.attributes.position; const colors = wfGeometry.attributes.color; const color = new THREE.Color(); for (let lineIndex = 0; lineIndex < WF_NUM_LINES; lineIndex++) { if (!wfFrequencyHistory[lineIndex] || !wfPreviousYValues[lineIndex]) continue; for (let pointIndex = 0; pointIndex < WF_LINE_LENGTH; pointIndex++) { const vertexIndex = lineIndex * WF_LINE_LENGTH + pointIndex; const freqValue = wfFrequencyHistory[lineIndex][pointIndex]; const targetY = (freqValue / 255.0) * WF_VERTICAL_SCALE; const previousY = wfPreviousYValues[lineIndex][pointIndex]; const smoothedY = previousY * WF_SMOOTHING_FACTOR + targetY * (1 - WF_SMOOTHING_FACTOR); wfPreviousYValues[lineIndex][pointIndex] = smoothedY; positions.setY(vertexIndex, smoothedY); const hue = pointIndex / WF_LINE_LENGTH; const lightness = Math.max(0.1, Math.min(1.0, (freqValue / 255.0) * 1.5 * WF_COLOR_LIGHTNESS)); color.setHSL(hue, WF_COLOR_SATURATION, lightness); colors.setXYZ(vertexIndex, color.r, color.g, color.b); } } positions.needsUpdate = true; colors.needsUpdate = true;}
+        function updateBackgroundColor(averageIntensity) { if (!isPlaying) return; const hue = 0.6 + (averageIntensity / 255) * 0.15; const sat = 0.6; const light = (currentTheme === 'light' ? 0.85 : 0.1) + (averageIntensity / 255) * (currentTheme === 'light' ? 0.10 : 0.10); bodyElement.style.backgroundColor = `hsl(${hue * 360}, ${sat * 100}%, ${light * 100}%)`;}
+        function resetVisualizers() { let needsColorUpdate = false; let needsPosUpdate = false; currentVisualizerObjects.forEach(obj => { if (obj instanceof THREE.Mesh && obj.geometry && obj.scale) { const targetScaleY = 0.1; obj.scale.y += (targetScaleY - obj.scale.y) * WF_RESET_LERP_FACTOR; if (obj.geometry.attributes.color) { const colors = obj.geometry.attributes.color; const targetColor = new THREE.Color(currentTheme === 'light' ? 0xaaaaaa : 0x555555); const currentColor = new THREE.Color(); for (let j = 0; j < colors.count; j++) { currentColor.fromBufferAttribute(colors, j); currentColor.lerp(targetColor, WF_RESET_LERP_FACTOR); colors.setXYZ(j, currentColor.r, currentColor.g, currentColor.b); } colors.needsUpdate = true; }} else if (obj === wfLineSegments && wfGeometry && wfGeometry.attributes.position && wfGeometry.attributes.color && wfPreviousYValues.length > 0) { const positions = wfGeometry.attributes.position; const colors = wfGeometry.attributes.color; const targetColor = new THREE.Color(currentTheme === 'light' ? 0xcccccc : 0x444444); const currentColor = new THREE.Color(); for (let lineIndex = 0; lineIndex < WF_NUM_LINES; lineIndex++) { if (!wfPreviousYValues[lineIndex]) continue; for (let pointIndex = 0; pointIndex < WF_LINE_LENGTH; pointIndex++) { const vertexIndex = lineIndex * WF_LINE_LENGTH + pointIndex; const currentY = positions.getY(vertexIndex); const targetY = 0; const newY = currentY + (targetY - currentY) * WF_RESET_LERP_FACTOR; positions.setY(vertexIndex, newY); wfPreviousYValues[lineIndex][pointIndex] = newY; currentColor.fromBufferAttribute(colors, vertexIndex); currentColor.lerp(targetColor, WF_RESET_LERP_FACTOR); colors.setXYZ(vertexIndex, currentColor.r, currentColor.g, currentColor.b); } } needsPosUpdate = true; needsColorUpdate = true; }}); if (needsPosUpdate && wfGeometry && wfGeometry.attributes.position) wfGeometry.attributes.position.needsUpdate = true; if (needsColorUpdate && wfGeometry && wfGeometry.attributes.color) wfGeometry.attributes.color.needsUpdate = true;}
+        function onWindowResize() { if (!isVisualizerInitialized || !camera || !renderer || !mainContentArea) return; const newWidth = mainContentArea.clientWidth; const newHeight = mainContentArea.clientHeight; camera.aspect = newWidth / newHeight; camera.updateProjectionMatrix(); renderer.setSize(newWidth, newHeight); }
         let messageTimeout = null; 
-        function showMessage(text, duration = 3000) { /* ... Same as original ... */ if (messageTimeout) clearTimeout(messageTimeout); messageBox.textContent = text; messageBox.style.display = 'block'; if (duration > 0) { messageTimeout = setTimeout(() => { if (messageBox.textContent === text) messageBox.style.display = 'none'; messageTimeout = null; }, duration);}}
-        function initAudioContextOnInteraction() { /* ... Same as original ... */ const startAudio = () => { if (audioContext && audioContext.state === 'suspended') { audioContext.resume().then(() => { hasAudioContextStarted = true; }).catch(e => console.error("Error resuming AudioContext:", e));} document.removeEventListener('click', startAudio); document.removeEventListener('touchstart', startAudio); document.removeEventListener('keydown', startAudio);}; document.addEventListener('click', startAudio); document.addEventListener('touchstart', startAudio); document.addEventListener('keydown', startAudio); showMessage("Click or tap the page to enable audio.", 5000); }
-        function updateTimeDisplay() { /* ... Same as original ... */ if (currentTimeAboutDisplay && infoSidebar.classList.contains('open') && aboutPageContent.style.display !== 'none') { const now = new Date(); const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }); currentTimeAboutDisplay.textContent = `${timeString}`;}}
+        function showMessage(text, duration = 3000) { if (messageTimeout) clearTimeout(messageTimeout); messageBox.textContent = text; messageBox.style.display = 'block'; if (duration > 0) { messageTimeout = setTimeout(() => { if (messageBox.textContent === text) messageBox.style.display = 'none'; messageTimeout = null; }, duration);}}
+        function initAudioContextOnInteraction() { const startAudio = () => { if (audioContext && audioContext.state === 'suspended') { audioContext.resume().then(() => { hasAudioContextStarted = true; }).catch(e => console.error("Error resuming AudioContext:", e));} document.removeEventListener('click', startAudio); document.removeEventListener('touchstart', startAudio); document.removeEventListener('keydown', startAudio);}; document.addEventListener('click', startAudio); document.addEventListener('touchstart', startAudio); document.addEventListener('keydown', startAudio); showMessage("Click or tap the page to enable audio.", 5000); }
+        function updateTimeDisplay() { if (currentTimeAboutDisplay && infoSidebar.classList.contains('open') && aboutPageContent.style.display !== 'none') { const now = new Date(); const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }); currentTimeAboutDisplay.textContent = `${timeString}`;}}
 
-        // --- NEW: Drag and Drop Handlers ---
+        // --- Drag and Drop Handlers ---
         function handleDragStart(e) {
             if (e.target.classList.contains('playlist-item')) {
                 draggedItem = e.target;
-                // Set data with the index of the dragged item
                 e.dataTransfer.setData('text/plain', e.target.dataset.index); 
                 e.dataTransfer.effectAllowed = 'move';
-                // Add class after a delay so the original item is visible while dragging
                 setTimeout(() => { 
                     if (draggedItem) draggedItem.classList.add('dragging');
                 }, 0);
@@ -1506,19 +1623,17 @@
         }
 
         function handleDragOver(e) {
-            e.preventDefault(); // Necessary to allow dropping
+            e.preventDefault();
             const target = e.target.closest('.playlist-item');
             
-            // Clear previous indicators
             document.querySelectorAll('.drop-target-above, .drop-target-below').forEach(el => {
                 el.classList.remove('drop-target-above', 'drop-target-below');
             });
 
             if (target && target !== draggedItem) {
-                dragOverItem = target; // Store the item being dragged over
+                dragOverItem = target;
                 const rect = target.getBoundingClientRect();
                 const offsetY = e.clientY - rect.top;
-                // Determine if dragging above or below the midpoint of the target item
                 if (offsetY < rect.height / 2) {
                     target.classList.add('drop-target-above');
                 } else {
@@ -1526,21 +1641,18 @@
                 }
                 e.dataTransfer.dropEffect = 'move';
             } else {
-                dragOverItem = null; // Not over a valid drop target
+                dragOverItem = null;
                 e.dataTransfer.dropEffect = 'none';
             }
         }
         
         function handleDragLeave(e) {
-            // Clear indicators if the mouse leaves a playlist item or the container
             const target = e.target.closest('.playlist-item');
             if (target) {
                 target.classList.remove('drop-target-above', 'drop-target-below');
             }
-            // If relatedTarget is null, it means we left the window or a non-interactive area.
-            // If relatedTarget is not part of the container, clear dragOverItem.
             if (!e.relatedTarget || !playlistItemsContainer.contains(e.relatedTarget)) {
-                 if (dragOverItem) { // Clear if we were over an item and now left the container
+                 if (dragOverItem) {
                     dragOverItem.classList.remove('drop-target-above', 'drop-target-below');
                  }
                 dragOverItem = null;
@@ -1552,7 +1664,6 @@
             const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
             let targetElement = dragOverItem || e.target.closest('.playlist-item');
 
-            // Clear visual indicators
             document.querySelectorAll('.drop-target-above, .drop-target-below').forEach(el => {
                 el.classList.remove('drop-target-above', 'drop-target-below');
             });
@@ -1564,26 +1675,22 @@
             }
             
             let toIndex;
-            if (targetElement && targetElement !== draggedItem) { // Dropped on another item
+            if (targetElement && targetElement !== draggedItem) {
                 toIndex = parseInt(targetElement.dataset.index);
                 const rect = targetElement.getBoundingClientRect();
                 const offsetY = e.clientY - rect.top;
-                if (offsetY > rect.height / 2) { // Dropped in lower half, insert after
+                if (offsetY > rect.height / 2) {
                     toIndex++;
                 }
-            } else if (!targetElement && playlistItemsContainer.contains(e.target)) { // Dropped in empty area of container
-                toIndex = playlist.length; // Append to the end
-            } else { // Dropped on itself or outside valid area
+            } else if (!targetElement && playlistItemsContainer.contains(e.target)) {
+                toIndex = playlist.length;
+            } else {
                 draggedItem = null; dragOverItem = null; return;
             }
 
-
-            // Perform the reorder in the playlist array
             const [movedItemData] = playlist.splice(fromIndex, 1);
-            // Adjust toIndex if item was moved from before to after its original position
             playlist.splice(toIndex > fromIndex ? toIndex -1 : toIndex, 0, movedItemData);
 
-            // Update currentTrackIndex if affected
             if (currentTrackIndex === fromIndex) {
                 currentTrackIndex = (toIndex > fromIndex) ? toIndex - 1 : toIndex;
             } else if (fromIndex < currentTrackIndex && (toIndex > fromIndex ? toIndex -1 : toIndex) >= currentTrackIndex) {
@@ -1592,14 +1699,13 @@
                 currentTrackIndex++;
             }
             
-            renderPlaylist(); // Re-render the playlist with new order
+            renderPlaylist();
             updateSkipButtonsState(); 
             draggedItem = null;
             dragOverItem = null;
         }
 
         function handleDragEnd(e) {
-            // Clean up dragging class and indicators
             if (draggedItem) {
                 draggedItem.classList.remove('dragging');
             }
@@ -1611,7 +1717,7 @@
         }
 
 
-        // --- Initial Setup (Same as original) ---
+        // --- Initial Setup ---
         if (window.AudioContext || window.webkitAudioContext) {
              if (!audioContext) { audioContext = THREE.AudioContext.getContext(); }
              if (audioContext.state === 'suspended') initAudioContextOnInteraction(); 

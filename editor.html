@@ -9,32 +9,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
     <!-- WaveSurfer.js and Regions Plugin -->
     <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
     <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
+    <link rel="stylesheet" href="style.css">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .main-nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background-color: #1f2937; color: white; }
-        .main-nav .logo { font-size: 1.5rem; font-weight: 700; }
-        .main-nav .nav-links a { color: #d1d5db; margin-left: 1.5rem; text-decoration: none; transition: color 0.2s; }
-        .main-nav .nav-links a:hover { color: white; }
-        .main-nav .nav-links a.active { color: white; font-weight: 600; }
-        .control-btn { background-color: #374151; color: white; padding: 0.75rem; border-radius: 0.5rem; border: none; cursor: pointer; transition: background-color 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
-        .control-btn:hover:not(:disabled) { background-color: #4b5563; }
-        .control-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .tool-panel-btn { background-color: #374151; }
-        .tool-panel-btn:hover:not(:disabled) { background-color: #4f46e5; }
-        
         /* Custom styles for WaveSurfer regions */
         .wavesurfer-region {
-            background-color: rgba(79, 70, 229, 0.2); /* semi-transparent indigo */
-            border-left: 2px solid #4f46e5;
-            border-right: 2px solid #4f46e5;
+            background-color: rgba(229, 62, 62, 0.2); /* semi-transparent red */
+            border-left: 2px solid var(--accent-primary);
+            border-right: 2px solid var(--accent-primary);
             z-index: 3;
         }
         .wavesurfer-handle {
-            background-color: #a5b4fc;
+            background-color: #fbd38d; /* yellow-300 */
             width: 4px;
             height: 100%;
         }
@@ -42,9 +30,11 @@
 </head>
 <body class="flex flex-col h-screen overflow-hidden bg-gray-900 text-white">
 
+    <div id="p5-canvas-container"></div>
+
     <!-- Shared navigation bar -->
     <nav class="main-nav flex-shrink-0">
-        <div class="logo"><i class="fas fa-headphones-alt text-indigo-400"></i> Audio Hub</div>
+        <div class="logo"><i class="fas fa-headphones-alt"></i> Audio Hub</div>
         <div class="nav-links">
             <a href="index.html">Home</a>
             <a href="musicvisualizer.html">Visualizer</a>
@@ -54,17 +44,14 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="flex-grow flex flex-col md:flex-row overflow-hidden">
+    <main class="flex-grow flex flex-col md:flex-row overflow-hidden relative z-10">
         <!-- Left Sidebar: Editing Tools -->
-        <aside id="tool-panel" class="w-full md:w-64 bg-gray-800 p-4 border-r border-gray-700 flex flex-col gap-4 opacity-50 pointer-events-none">
+        <aside id="tool-panel" class="w-full md:w-64 bg-gray-900/60 backdrop-blur-sm p-4 border-r border-gray-700 flex flex-col gap-4 opacity-50 pointer-events-none">
             <h3 class="text-xl font-bold text-center border-b border-gray-700 pb-2">Editing Tools</h3>
             
-            <!-- Trim Tool -->
-            <button id="trim-btn" class="control-btn tool-panel-btn w-full justify-start" disabled><i class="fas fa-cut w-5 text-center"></i> Trim to Selection</button>
-            
-            <!-- Fade Tools -->
-            <button id="fade-in-btn" class="control-btn tool-panel-btn w-full justify-start" disabled><i class="fas fa-long-arrow-alt-right w-5 text-center"></i> Fade In</button>
-            <button id="fade-out-btn" class="control-btn tool-panel-btn w-full justify-start" disabled><i class="fas fa-long-arrow-alt-left w-5 text-center"></i> Fade Out</button>
+            <button id="trim-btn" class="control-btn w-full justify-start" disabled><i class="fas fa-cut w-5 text-center"></i> Trim to Selection</button>
+            <button id="fade-in-btn" class="control-btn w-full justify-start" disabled><i class="fas fa-long-arrow-alt-right w-5 text-center"></i> Fade In</button>
+            <button id="fade-out-btn" class="control-btn w-full justify-start" disabled><i class="fas fa-long-arrow-alt-left w-5 text-center"></i> Fade Out</button>
 
             <!-- Volume Tool -->
             <div class="flex flex-col gap-2">
@@ -78,32 +65,30 @@
                 <input id="pan-slider" type="range" min="-100" max="100" value="0" class="w-full" disabled>
             </div>
 
-            <!-- Spacer -->
             <div class="flex-grow"></div>
 
-            <!-- Export Button -->
-            <button id="export-btn" class="control-btn bg-green-600 hover:bg-green-700 w-full" disabled><i class="fas fa-download"></i> Export Audio (Demo)</button>
+            <button id="export-btn" class="control-btn accent-blue w-full" disabled><i class="fas fa-download"></i> Export Audio (Demo)</button>
         </aside>
 
         <!-- Main Editor Area -->
         <div class="flex-grow flex flex-col overflow-hidden">
             <!-- Waveform Display -->
-            <div id="waveform-container" class="flex-grow p-4 bg-gray-900 flex items-center justify-center">
+            <div id="waveform-container" class="flex-grow p-4 bg-transparent flex items-center justify-center">
                 <div id="waveform" class="w-full"></div>
                 <div id="drop-prompt" class="text-center text-gray-500">
-                    <i class="fas fa-file-audio text-6xl mb-4"></i>
+                    <i class="fas fa-file-audio text-6xl mb-4 text-red-500"></i>
                     <h2 class="text-2xl font-bold">Select an MP3 file to begin</h2>
                     <p>Click the "Upload" button below or drag and drop a file here.</p>
                 </div>
             </div>
             <!-- Playback Controls -->
-            <div class="flex-shrink-0 bg-gray-800/80 backdrop-blur-md border-t border-gray-700 p-4 flex items-center justify-between gap-6">
+            <div class="flex-shrink-0 bg-gray-900/70 backdrop-blur-md border-t border-gray-700 p-4 flex items-center justify-between gap-6">
                 <div class="flex items-center gap-4">
                     <button id="playBtn" class="control-btn text-xl" disabled><i class="fas fa-play"></i></button>
                     <button id="stopBtn" class="control-btn text-xl" disabled><i class="fas fa-stop"></i></button>
                     <div class="text-gray-400"><span id="currentTime">0:00</span> / <span id="durationTime">0:00</span></div>
                 </div>
-                <label for="editorFileInput" class="control-btn bg-indigo-600 hover:bg-indigo-700">
+                <label for="editorFileInput" class="control-btn accent-red">
                     <i class="fas fa-upload"></i> Upload File
                 </label>
                 <input type="file" id="editorFileInput" accept="audio/mp3" class="hidden" />
@@ -111,6 +96,8 @@
         </div>
     </main>
   
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <script src="p5-background.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const editorFileInput = document.getElementById('editorFileInput');
@@ -128,9 +115,9 @@
 
         wavesurfer = WaveSurfer.create({
             container: '#waveform',
-            waveColor: 'rgb(165 180 252)',
-            progressColor: 'rgb(79 70 229)',
-            cursorColor: '#ffffff',
+            waveColor: 'rgb(66, 153, 225)', // Blue
+            progressColor: 'rgb(229, 62, 62)', // Red
+            cursorColor: '#f6e05e', // Yellow
             height: 250,
             barWidth: 3,
             barGap: 2,
@@ -138,9 +125,7 @@
             responsive: true,
         });
 
-        // Initialize the Regions plugin
         wsRegions = wavesurfer.registerPlugin(WaveSurfer.Regions.create());
-
         setupWaveSurferEvents();
       }
 
@@ -153,21 +138,20 @@
             durationTimeEl.textContent = formatTime(wavesurfer.getDuration());
             dropPrompt.style.display = 'none';
             toolPanel.classList.remove('opacity-50', 'pointer-events-none');
-            // Enable all buttons once audio is loaded
-            document.querySelectorAll('.control-btn, .tool-panel-btn, input[type="range"]').forEach(el => el.disabled = false);
+            document.querySelectorAll('.control-btn, input[type="range"]').forEach(el => el.disabled = false);
         });
 
         wavesurfer.on('play', () => {
             playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            playBtn.classList.add('accent-red');
         });
           
         wavesurfer.on('pause', () => {
             playBtn.innerHTML = '<i class="fas fa-play"></i>';
+            playBtn.classList.remove('accent-red');
         });
 
-        // Create one region on click
         wsRegions.on('region-created', region => {
-            // Only allow one region at a time for this demo
             const regions = wsRegions.getRegions();
             if (regions.length > 1) {
                 regions[0].remove();
@@ -183,11 +167,10 @@
       
       editorFileInput.addEventListener('change', e => loadAudioFile(e.target.files[0]));
       
-      // Drag and drop functionality
       const waveformContainer = document.getElementById('waveform-container');
       waveformContainer.addEventListener('dragover', e => {
         e.preventDefault();
-        e.currentTarget.style.backgroundColor = '#1f2937';
+        e.currentTarget.style.backgroundColor = 'rgba(229, 62, 62, 0.2)';
       });
       waveformContainer.addEventListener('dragleave', e => {
         e.preventDefault();
@@ -205,7 +188,6 @@
       playBtn.addEventListener('click', () => wavesurfer?.playPause());
       stopBtn.addEventListener('click', () => wavesurfer?.stop());
 
-      // --- Tool Panel Button Listeners (Demo functionality) ---
       document.getElementById('trim-btn').addEventListener('click', () => {
         const regions = wsRegions.getRegions();
         if (regions.length > 0) {
@@ -228,4 +210,3 @@
   </script>
 </body>
 </html>
-

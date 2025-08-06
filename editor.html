@@ -1,21 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MP3 Editor</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/7.0.0/wavesurfer.min.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Editor - Audio Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- WaveSurfer.js and Regions Plugin -->
+    <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
+    <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .main-nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background-color: #1f2937; color: white; }
+        .main-nav .logo { font-size: 1.5rem; font-weight: 700; }
+        .main-nav .nav-links a { color: #d1d5db; margin-left: 1.5rem; text-decoration: none; transition: color 0.2s; }
+        .main-nav .nav-links a:hover { color: white; }
+        .main-nav .nav-links a.active { color: white; font-weight: 600; }
+        .control-btn { background-color: #374151; color: white; padding: 0.75rem; border-radius: 0.5rem; border: none; cursor: pointer; transition: background-color 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .control-btn:hover:not(:disabled) { background-color: #4b5563; }
+        .control-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .tool-panel-btn { background-color: #374151; }
+        .tool-panel-btn:hover:not(:disabled) { background-color: #4f46e5; }
+        
+        /* Custom styles for WaveSurfer regions */
+        .wavesurfer-region {
+            background-color: rgba(79, 70, 229, 0.2); /* semi-transparent indigo */
+            border-left: 2px solid #4f46e5;
+            border-right: 2px solid #4f46e5;
+            z-index: 3;
+        }
+        .wavesurfer-handle {
+            background-color: #a5b4fc;
+            width: 4px;
+            height: 100%;
+        }
+    </style>
 </head>
-<body>
+<body class="flex flex-col h-screen overflow-hidden bg-gray-900 text-white">
 
-    <nav class="main-nav">
-        <div class="logo">Audio Hub</div>
+    <!-- Shared navigation bar -->
+    <nav class="main-nav flex-shrink-0">
+        <div class="logo"><i class="fas fa-headphones-alt text-indigo-400"></i> Audio Hub</div>
         <div class="nav-links">
             <a href="index.html">Home</a>
             <a href="musicvisualizer.html">Visualizer</a>
@@ -24,114 +52,173 @@
         </div>
     </nav>
 
-    <div class="page-content-wrapper">
-        <div class="audio-editor">
-            <div class="editor-header">
-                <div class="flex items-center gap-4">
-                    <i class="fas fa-wave-square text-3xl"></i>
-                    <h1 class="text-2xl font-bold">MP3 Editor</h1>
-                </div>
-                <div class="file-input-container">
-                    <input type="file" id="fileInput" accept="audio/mp3" class="hidden" />
-                    <label for="fileInput" class="editor-btn editor-btn-secondary">
-                        <i class="fas fa-file-audio"></i> Select MP3 File
-                    </label>
-                </div>
+    <!-- Main Content -->
+    <main class="flex-grow flex flex-col md:flex-row overflow-hidden">
+        <!-- Left Sidebar: Editing Tools -->
+        <aside id="tool-panel" class="w-full md:w-64 bg-gray-800 p-4 border-r border-gray-700 flex flex-col gap-4 opacity-50 pointer-events-none">
+            <h3 class="text-xl font-bold text-center border-b border-gray-700 pb-2">Editing Tools</h3>
+            
+            <!-- Trim Tool -->
+            <button id="trim-btn" class="control-btn tool-panel-btn w-full justify-start" disabled><i class="fas fa-cut w-5 text-center"></i> Trim to Selection</button>
+            
+            <!-- Fade Tools -->
+            <button id="fade-in-btn" class="control-btn tool-panel-btn w-full justify-start" disabled><i class="fas fa-long-arrow-alt-right w-5 text-center"></i> Fade In</button>
+            <button id="fade-out-btn" class="control-btn tool-panel-btn w-full justify-start" disabled><i class="fas fa-long-arrow-alt-left w-5 text-center"></i> Fade Out</button>
+
+            <!-- Volume Tool -->
+            <div class="flex flex-col gap-2">
+                <label for="volume-slider" class="flex items-center gap-2"><i class="fas fa-volume-up w-5 text-center"></i> Volume</label>
+                <input id="volume-slider" type="range" min="0" max="100" value="100" class="w-full" disabled>
             </div>
             
-            <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="md:col-span-2 bg-gray-800 p-4 rounded-lg">
-                    <div id="waveform"></div>
-                    <div class="flex justify-between text-sm text-gray-400 mt-2">
-                        <span id="currentTime">00:00</span>
-                        <span id="durationTime">00:00</span>
-                    </div>
-                    
-                    <div class="flex gap-4 mt-4">
-                        <button id="playBtn" class="editor-btn editor-btn-primary flex-1">
-                            <i class="fas fa-play"></i> Play
-                        </button>
-                        <button id="stopBtn" class="editor-btn editor-btn-secondary flex-1">
-                            <i class="fas fa-stop"></i> Stop
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="bg-gray-800 p-4 rounded-lg">
-                    <div class="mb-6 pb-6 border-b border-gray-700">
-                        <h2 class="text-lg font-semibold mb-3 flex items-center gap-2"><i class="fas fa-cut"></i> Trim Audio</h2>
-                        <p class="text-sm text-gray-400">Trimming functionality is for demonstration.</p>
-                    </div>
-                    
-                    <div class="mb-6 pb-6 border-b border-gray-700">
-                        <h2 class="text-lg font-semibold mb-3 flex items-center gap-2"><i class="fas fa-sliders-h"></i> Audio Effects</h2>
-                        <p class="text-sm text-gray-400">Effects are for demonstration.</p>
-                    </div>
-                    
-                    <div>
-                        <h2 class="text-lg font-semibold mb-3 flex items-center gap-2"><i class="fas fa-file-export"></i> Export</h2>
-                        <button id="downloadBtn" class="editor-btn editor-btn-primary w-full" disabled>
-                            <i class="fas fa-download"></i> Download (Demo)
-                        </button>
-                    </div>
+            <!-- Panning Tool -->
+            <div class="flex flex-col gap-2">
+                <label for="pan-slider" class="flex items-center gap-2"><i class="fas fa-headphones w-5 text-center"></i> Pan (L/R)</label>
+                <input id="pan-slider" type="range" min="-100" max="100" value="0" class="w-full" disabled>
+            </div>
+
+            <!-- Spacer -->
+            <div class="flex-grow"></div>
+
+            <!-- Export Button -->
+            <button id="export-btn" class="control-btn bg-green-600 hover:bg-green-700 w-full" disabled><i class="fas fa-download"></i> Export Audio (Demo)</button>
+        </aside>
+
+        <!-- Main Editor Area -->
+        <div class="flex-grow flex flex-col overflow-hidden">
+            <!-- Waveform Display -->
+            <div id="waveform-container" class="flex-grow p-4 bg-gray-900 flex items-center justify-center">
+                <div id="waveform" class="w-full"></div>
+                <div id="drop-prompt" class="text-center text-gray-500">
+                    <i class="fas fa-file-audio text-6xl mb-4"></i>
+                    <h2 class="text-2xl font-bold">Select an MP3 file to begin</h2>
+                    <p>Click the "Upload" button below or drag and drop a file here.</p>
                 </div>
             </div>
+            <!-- Playback Controls -->
+            <div class="flex-shrink-0 bg-gray-800/80 backdrop-blur-md border-t border-gray-700 p-4 flex items-center justify-between gap-6">
+                <div class="flex items-center gap-4">
+                    <button id="playBtn" class="control-btn text-xl" disabled><i class="fas fa-play"></i></button>
+                    <button id="stopBtn" class="control-btn text-xl" disabled><i class="fas fa-stop"></i></button>
+                    <div class="text-gray-400"><span id="currentTime">0:00</span> / <span id="durationTime">0:00</span></div>
+                </div>
+                <label for="editorFileInput" class="control-btn bg-indigo-600 hover:bg-indigo-700">
+                    <i class="fas fa-upload"></i> Upload File
+                </label>
+                <input type="file" id="editorFileInput" accept="audio/mp3" class="hidden" />
+            </div>
         </div>
-    </div>
+    </main>
   
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      const fileInput = document.getElementById('fileInput');
+      const editorFileInput = document.getElementById('editorFileInput');
       const playBtn = document.getElementById('playBtn');
       const stopBtn = document.getElementById('stopBtn');
       const currentTimeEl = document.getElementById('currentTime');
       const durationTimeEl = document.getElementById('durationTime');
-      const downloadBtn = document.getElementById('downloadBtn');
+      const dropPrompt = document.getElementById('drop-prompt');
+      const toolPanel = document.getElementById('tool-panel');
       
-      const wavesurfer = WaveSurfer.create({
-        container: '#waveform',
-        waveColor: '#4f46e5',
-        progressColor: '#7c3aed',
-        cursorColor: '#ffffff',
-        height: 150,
-        barWidth: 2,
-        responsive: true,
+      let wavesurfer, wsRegions;
+
+      function initWaveSurfer() {
+        if (wavesurfer) wavesurfer.destroy();
+
+        wavesurfer = WaveSurfer.create({
+            container: '#waveform',
+            waveColor: 'rgb(165 180 252)',
+            progressColor: 'rgb(79 70 229)',
+            cursorColor: '#ffffff',
+            height: 250,
+            barWidth: 3,
+            barGap: 2,
+            barRadius: 2,
+            responsive: true,
+        });
+
+        // Initialize the Regions plugin
+        wsRegions = wavesurfer.registerPlugin(WaveSurfer.Regions.create());
+
+        setupWaveSurferEvents();
+      }
+
+      function setupWaveSurferEvents() {
+        wavesurfer.on('timeupdate', time => {
+            currentTimeEl.textContent = formatTime(time);
+        });
+        
+        wavesurfer.on('ready', () => {
+            durationTimeEl.textContent = formatTime(wavesurfer.getDuration());
+            dropPrompt.style.display = 'none';
+            toolPanel.classList.remove('opacity-50', 'pointer-events-none');
+            // Enable all buttons once audio is loaded
+            document.querySelectorAll('.control-btn, .tool-panel-btn, input[type="range"]').forEach(el => el.disabled = false);
+        });
+
+        wavesurfer.on('play', () => {
+            playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+        });
+          
+        wavesurfer.on('pause', () => {
+            playBtn.innerHTML = '<i class="fas fa-play"></i>';
+        });
+
+        // Create one region on click
+        wsRegions.on('region-created', region => {
+            // Only allow one region at a time for this demo
+            const regions = wsRegions.getRegions();
+            if (regions.length > 1) {
+                regions[0].remove();
+            }
+        });
+      }
+
+      function loadAudioFile(file) {
+        if (!file) return;
+        initWaveSurfer();
+        wavesurfer.load(URL.createObjectURL(file));
+      }
+      
+      editorFileInput.addEventListener('change', e => loadAudioFile(e.target.files[0]));
+      
+      // Drag and drop functionality
+      const waveformContainer = document.getElementById('waveform-container');
+      waveformContainer.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.currentTarget.style.backgroundColor = '#1f2937';
       });
-      
-      fileInput.addEventListener('change', function(event) {
-        const file = event.target.files[0];
-        if (file) {
-          const fileURL = URL.createObjectURL(file);
-          wavesurfer.load(fileURL);
-          downloadBtn.disabled = false;
+      waveformContainer.addEventListener('dragleave', e => {
+        e.preventDefault();
+        e.currentTarget.style.backgroundColor = '';
+      });
+      waveformContainer.addEventListener('drop', e => {
+        e.preventDefault();
+        e.currentTarget.style.backgroundColor = '';
+        const file = e.dataTransfer.files[0];
+        if (file && file.type === 'audio/mpeg') {
+            loadAudioFile(file);
         }
       });
-      
-      playBtn.addEventListener('click', () => wavesurfer.playPause());
-      stopBtn.addEventListener('click', () => wavesurfer.stop());
-      
-      wavesurfer.on('timeupdate', time => {
-        currentTimeEl.textContent = formatTime(time);
-      });
-      
-      wavesurfer.on('ready', () => {
-        durationTimeEl.textContent = formatTime(wavesurfer.getDuration());
-      });
 
-      wavesurfer.on('play', () => {
-          playBtn.innerHTML = '<i class="fas fa-pause"></i> Pause';
-      });
-        
-      wavesurfer.on('pause', () => {
-          playBtn.innerHTML = '<i class="fas fa-play"></i> Play';
-      });
+      playBtn.addEventListener('click', () => wavesurfer?.playPause());
+      stopBtn.addEventListener('click', () => wavesurfer?.stop());
 
-      downloadBtn.addEventListener('click', () => {
-          // A non-blocking notification would be better in a real app
-          alert('This is a demo. File download is not implemented.');
+      // --- Tool Panel Button Listeners (Demo functionality) ---
+      document.getElementById('trim-btn').addEventListener('click', () => {
+        const regions = wsRegions.getRegions();
+        if (regions.length > 0) {
+            alert(`Demo: Trim audio from ${formatTime(regions[0].start)} to ${formatTime(regions[0].end)}`);
+        } else {
+            alert('Please select a region to trim.');
+        }
       });
+      document.getElementById('fade-in-btn').addEventListener('click', () => alert('Demo: Fade-in applied.'));
+      document.getElementById('fade-out-btn').addEventListener('click', () => alert('Demo: Fade-out applied.'));
+      document.getElementById('export-btn').addEventListener('click', () => alert('Demo: Export functionality is not implemented.'));
       
       function formatTime(seconds) {
+        if (isNaN(seconds)) return '0:00';
         const minutes = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;

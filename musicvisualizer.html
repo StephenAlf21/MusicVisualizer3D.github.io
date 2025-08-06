@@ -75,11 +75,13 @@
         </aside>
     </div>
 
-    <!-- **FIX**: Using direct script includes like the working example. This is more robust. -->
+    <!-- Load the main three.js library FIRST -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
+    
+    <!-- Load OrbitControls SECOND -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/examples/js/controls/OrbitControls.js"></script>
-
-    <!-- The application logic (no longer a module) -->
+    
+    <!-- Load your custom script LAST -->
     <script src="script.js"></script>
 </body>
 </html>

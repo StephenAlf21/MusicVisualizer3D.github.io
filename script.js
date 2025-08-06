@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const playPauseButton = $('playPauseButton');
     const skipBackButton = $('skipBackButton');
     const skipForwardButton = $('skipForwardButton');
-    // FIX: Removed the volumeSlider constant as the element no longer exists
     const seekBar = $('seekBar');
     const currentTimeDisplay = $('currentTime');
     const totalDurationDisplay = $('totalDuration');
@@ -46,21 +45,24 @@ document.addEventListener('DOMContentLoaded', () => {
         renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(visualizerContainer.clientWidth, visualizerContainer.clientHeight);
+        renderer.setClearColor(0x000000, 0); // Transparent background
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.2));
-        
         createVisualizerWeb();
     }
 
     function createVisualizerWeb() {
-        const geometry = new THREE.SphereGeometry(50, 64, 64);
+        const geometry = new THREE.IcosahedronGeometry(60, 8);
         originalPositions = new Float32Array(geometry.attributes.position.array);
-        const material = new THREE.LineBasicMaterial({
-            color: 0x0099ff,
+        
+        // Use Points instead of LineSegments for a more "particle" look
+        const material = new THREE.PointsMaterial({
+            size: 0.8,
+            color: 0x4299e1, // Default to blue
             transparent: true,
-            opacity: 0.6
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending // Brighter where points overlap
         });
-        particleSystem = new THREE.LineSegments(geometry, material);
+        particleSystem = new THREE.Points(geometry, material);
         scene.add(particleSystem);
     }
 
@@ -70,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             audioElement = new Audio();
-            audioElement.volume = 0.5; // Set a default volume
             
             analyser = audioContext.createAnalyser();
             analyser.fftSize = 512;
@@ -103,8 +104,6 @@ document.addEventListener('DOMContentLoaded', () => {
         skipBackButton.onclick = () => loadTrack(currentTrackIndex - 1);
         skipForwardButton.onclick = () => loadTrack(currentTrackIndex + 1);
         
-        // FIX: Removed event listener for the non-existent volume slider
-        
         seekBar.onmousedown = () => { isSeeking = true; };
         seekBar.onmouseup = () => { isSeeking = false; seekToPosition(); };
         seekBar.addEventListener('touchstart', () => { isSeeking = true; });
@@ -122,11 +121,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function animate() {
         requestAnimationFrame(animate);
 
-        if (isPlaying && analyser && particleSystem) {
+        // Always rotate slowly
+        if (particleSystem) {
+            particleSystem.rotation.y += 0.0005;
+            particleSystem.rotation.x += 0.0002;
+        }
+
+        if (isPlaying && analyser) {
             analyser.getByteFrequencyData(dataArray);
             updateVisualizerWeb(dataArray);
-        } else if (particleSystem) {
-            particleSystem.rotation.y += 0.0005;
         }
         
         renderer.render(scene, camera);
@@ -136,22 +139,43 @@ document.addEventListener('DOMContentLoaded', () => {
         const positions = particleSystem.geometry.attributes.position.array;
         const vertexCount = positions.length / 3;
 
+        const bassAvg = data.slice(0, 32).reduce((a, b) => a + b, 0) / 32;
+        const midAvg = data.slice(32, 128).reduce((a, b) => a + b, 0) / 96;
+        const trebleAvg = data.slice(128).reduce((a, b) => a + b, 0) / (data.length - 128);
+
         for (let i = 0; i < vertexCount; i++) {
             const i3 = i * 3;
-            const direction = new THREE.Vector3(originalPositions[i3], originalPositions[i3 + 1], originalPositions[i3 + 2]).normalize();
-            const dataIndex = Math.floor(i / (vertexCount / data.length)) % data.length;
-            const magnitude = data[dataIndex];
-            const displacement = magnitude / 255 * 20;
-            positions[i3] = originalPositions[i3] + direction.x * displacement;
-            positions[i3 + 1] = originalPositions[i3 + 1] + direction.y * displacement;
-            positions[i3 + 2] = originalPositions[i3 + 2] + direction.z * displacement;
+            const originalVector = new THREE.Vector3(originalPositions[i3], originalPositions[i3+1], originalPositions[i3+2]);
+            const direction = originalVector.clone().normalize();
+            
+            // Apply displacement based on frequency band
+            let displacement = 0;
+            if (Math.abs(originalVector.y) > 40) { // Affect top/bottom with bass
+                displacement = (bassAvg / 255) * 30;
+            } else if (Math.abs(originalVector.x) > 40) { // Affect sides with treble
+                displacement = (trebleAvg / 255) * 25;
+            } else { // Affect middle with mids
+                displacement = (midAvg / 255) * 20;
+            }
+
+            const newPos = originalVector.clone().add(direction.multiplyScalar(displacement));
+            positions[i3] = newPos.x;
+            positions[i3 + 1] = newPos.y;
+            positions[i3 + 2] = newPos.z;
         }
         particleSystem.geometry.attributes.position.needsUpdate = true;
-        particleSystem.rotation.y += 0.001;
         
-        const overallAvg = data.reduce((a, b) => a + b, 0) / data.length;
-        const colorIntensity = overallAvg / 255;
-        particleSystem.material.color.setHSL(0.55 + colorIntensity * 0.1, 1.0, 0.5);
+        // Color changes based on audio intensity
+        // Hue: 0.0 (Red) -> 0.16 (Yellow) -> 0.6 (Blue)
+        const bassIntensity = bassAvg / 255;
+        const trebleIntensity = trebleAvg / 255;
+        
+        // Shift hue between red (0.0) and blue (0.6) based on bass
+        const hue = 0.6 - (bassIntensity * 0.6); 
+        particleSystem.material.color.setHSL(hue, 1.0, 0.6);
+        
+        // Make points larger with treble
+        particleSystem.material.size = 0.5 + trebleIntensity * 1.5;
     }
 
     // --- Playlist & Playback Logic ---
@@ -221,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
             emptyPlaylistMessage.style.display = 'none';
             playlist.forEach((track, index) => {
                 const isCurrentlyPlaying = (index === currentTrackIndex && isPlaying);
-                const itemClasses = `playlist-item flex items-center gap-4 p-3 rounded-md cursor-pointer transition-colors mb-1 ${index === currentTrackIndex ? 'bg-indigo-600/30' : 'hover:bg-gray-700'}`;
+                const itemClasses = `playlist-item flex items-center gap-4 p-3 rounded-md cursor-pointer transition-colors mb-1 ${index === currentTrackIndex ? 'bg-red-500/30' : 'hover:bg-gray-700'}`;
                 
                 const itemHTML = `
                     <div class="${itemClasses}" data-index="${index}">

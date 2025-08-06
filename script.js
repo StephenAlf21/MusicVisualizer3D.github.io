@@ -67,17 +67,10 @@ function initAudio() {
   audio = new THREE.Audio(listener);
   audio.setVolume(volumeSlider.value / 100);
 
-  // **FIX**: Manually create a serial audio graph:
+  // Manually create a serial audio graph:
   // The audio signal will flow from the source, through the analyser, then to the speakers.
-  // 1. Disconnect the direct connection from the audio's gain node to the listener (speakers).
   audio.gain.disconnect();
-
-  // 2. Create the analyser. The THREE.AudioAnalyser constructor will connect the audio's gain node to the analyser.
-  //    (audio.gain -> analyser)
   analyser = new THREE.AudioAnalyser(audio, 512);
-
-  // 3. Connect the analyser's output to the listener (speakers).
-  //    (analyser -> listener)
   analyser.analyser.connect(listener.getInput());
 }
 
@@ -147,23 +140,21 @@ function onWindowResize() {
 /* ---------- playlist management ---------- */
 function addFilesToPlaylist(event) {
   if (!event.target.files.length) return;
-  const wasPlaylistEmpty = playlist.length === 0;
   
+  // **FIX**: Do not auto-play. Just add files to the playlist.
+  // The user must click "Play" to start the audio context.
   for (const file of event.target.files) {
     playlist.push({ file: file, name: file.name });
   }
   
   renderPlaylist();
-  if (wasPlaylistEmpty) {
-    loadTrack(0);
-  }
-  fileInput.value = null; // Reset file input
+  fileInput.value = null; // Reset file input to allow selecting the same file again
 }
 
 async function loadTrack(index) {
   if (isLoading || !playlist.length) return;
 
-  // Resume audio context if it was suspended (required by browsers)
+  // Resume audio context if it was suspended. This is crucial.
   if (ctx.state === 'suspended') {
     await ctx.resume();
   }
@@ -205,7 +196,8 @@ async function loadTrack(index) {
 
 /* ---------- playback controls ---------- */
 function togglePlayPause() {
-  if (currentTrackIndex === -1) {
+  // If no track is selected yet, load the first one.
+  if (currentTrackIndex === -1 && playlist.length > 0) {
     loadTrack(0);
   } else {
     isPlaying ? pause() : play();

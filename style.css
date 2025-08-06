@@ -1,3 +1,9 @@
+/* Custom red selection color for the entire site */
+::selection {
+    background-color: #ef4444; /* red-500 */
+    color: white;
+}
+
 /* General Body and Root Variables */
 :root {
     --bg-primary: #111827; 

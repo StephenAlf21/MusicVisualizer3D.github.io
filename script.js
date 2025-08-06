@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const playPauseButton = $('playPauseButton');
     const skipBackButton = $('skipBackButton');
     const skipForwardButton = $('skipForwardButton');
-    const volumeSlider = $('volumeSlider');
+    const volumeSlider = document.querySelector('#volumeSlider'); // May not exist in new UI, handle gracefully
     const seekBar = $('seekBar');
     const currentTimeDisplay = $('currentTime');
     const totalDurationDisplay = $('totalDuration');
@@ -27,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvas = $('visualizer-canvas');
     const playlistContainer = $('playlist-items-container');
     const emptyPlaylistMessage = $('empty-playlist-message');
-    const clearPlaylistButton = $('clear-playlist-button');
     const messageBar = $('message-bar');
 
     // --- Initialization ---
@@ -54,20 +53,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function createVisualizerWeb() {
-        // Use a sphere geometry with many vertices to create the web effect
         const geometry = new THREE.SphereGeometry(50, 64, 64);
-        
-        // Store the original vertex positions for the animation
         originalPositions = new Float32Array(geometry.attributes.position.array);
-
-        // A material for the lines
         const material = new THREE.LineBasicMaterial({
-            color: 0x0099ff, // A nice blue color
+            color: 0x0099ff,
             transparent: true,
             opacity: 0.6
         });
-
-        // Create line segments to connect the vertices
         particleSystem = new THREE.LineSegments(geometry, material);
         scene.add(particleSystem);
     }
@@ -80,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
             audioElement = new Audio();
             
             analyser = audioContext.createAnalyser();
-            analyser.fftSize = 512; // More data points for a more detailed reaction
+            analyser.fftSize = 512;
             const bufferLength = analyser.frequencyBinCount;
             dataArray = new Uint8Array(bufferLength);
 
@@ -88,8 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
             source.connect(analyser);
             analyser.connect(audioContext.destination);
             
-            audioElement.addEventListener('play', () => { isPlaying = true; updateUI(); });
-            audioElement.addEventListener('pause', () => { isPlaying = false; updateUI(); });
+            audioElement.addEventListener('play', () => { isPlaying = true; renderPlaylist(); updateUI(); });
+            audioElement.addEventListener('pause', () => { isPlaying = false; renderPlaylist(); updateUI(); });
             audioElement.addEventListener('ended', () => loadTrack(currentTrackIndex + 1));
             audioElement.addEventListener('timeupdate', updateSeekBar);
             audioElement.addEventListener('loadedmetadata', updateSeekBar);
@@ -109,8 +101,9 @@ document.addEventListener('DOMContentLoaded', () => {
         playPauseButton.onclick = togglePlayPause;
         skipBackButton.onclick = () => loadTrack(currentTrackIndex - 1);
         skipForwardButton.onclick = () => loadTrack(currentTrackIndex + 1);
-        volumeSlider.oninput = () => { if (audioElement) audioElement.volume = volumeSlider.value / 100; };
-        clearPlaylistButton.onclick = clearPlaylist;
+        if (volumeSlider) {
+            volumeSlider.oninput = () => { if (audioElement) audioElement.volume = volumeSlider.value / 100; };
+        }
         seekBar.onmousedown = () => { isSeeking = true; };
         seekBar.onmouseup = () => { isSeeking = false; seekToPosition(); };
         seekBar.addEventListener('touchstart', () => { isSeeking = true; });
@@ -132,7 +125,6 @@ document.addEventListener('DOMContentLoaded', () => {
             analyser.getByteFrequencyData(dataArray);
             updateVisualizerWeb(dataArray);
         } else if (particleSystem) {
-            // Gently return to base state when paused
             particleSystem.rotation.y += 0.0005;
         }
         
@@ -143,44 +135,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const positions = particleSystem.geometry.attributes.position.array;
         const vertexCount = positions.length / 3;
 
-        // Animate the vertices
         for (let i = 0; i < vertexCount; i++) {
             const i3 = i * 3;
-            
-            // Get original position to calculate direction
-            const ox = originalPositions[i3];
-            const oy = originalPositions[i3 + 1];
-            const oz = originalPositions[i3 + 2];
-
-            // Create a normalized direction vector
-            const direction = new THREE.Vector3(ox, oy, oz).normalize();
-
-            // Map the vertex index to a data array index
+            const direction = new THREE.Vector3(originalPositions[i3], originalPositions[i3 + 1], originalPositions[i3 + 2]).normalize();
             const dataIndex = Math.floor(i / (vertexCount / data.length)) % data.length;
             const magnitude = data[dataIndex];
-
-            // Calculate the displacement
-            const displacement = magnitude / 255 * 20; // Max displacement of 20 units
-
-            // Apply the displacement along the direction vector
-            positions[i3] = ox + direction.x * displacement;
-            positions[i3 + 1] = oy + direction.y * displacement;
-            positions[i3 + 2] = oz + direction.z * displacement;
+            const displacement = magnitude / 255 * 20;
+            positions[i3] = originalPositions[i3] + direction.x * displacement;
+            positions[i3 + 1] = originalPositions[i3 + 1] + direction.y * displacement;
+            positions[i3 + 2] = originalPositions[i3 + 2] + direction.z * displacement;
         }
-
-        // Tell Three.js that the positions have been updated
         particleSystem.geometry.attributes.position.needsUpdate = true;
-
-        // Rotate the whole system
         particleSystem.rotation.y += 0.001;
         
-        // Change color based on overall volume
         const overallAvg = data.reduce((a, b) => a + b, 0) / data.length;
         const colorIntensity = overallAvg / 255;
         particleSystem.material.color.setHSL(0.55 + colorIntensity * 0.1, 1.0, 0.5);
     }
 
-    // --- Playlist & Playback Logic (Unchanged) ---
+    // --- Playlist & Playback Logic ---
     function addFilesToPlaylist(event) {
         if (!event.target.files.length) return;
         unlockAndInitAudio(); 
@@ -207,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const track = playlist[index];
         
         audioElement.src = track.url;
-        audioElement.volume = volumeSlider.value / 100;
+        if(volumeSlider) audioElement.volume = volumeSlider.value / 100;
         audioElement.play().catch(e => {
             console.error("Playback error:", e);
             showToast("Error playing audio file.", "error");
@@ -239,20 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
         audioElement.currentTime = (seekBar.value / 100) * audioElement.duration;
     }
 
-    function clearPlaylist() {
-        if (audioElement) audioElement.pause();
-        playlist.forEach(track => URL.revokeObjectURL(track.url));
-        playlist = [];
-        currentTrackIndex = -1;
-        isPlaying = false;
-        seekBar.value = 0;
-        currentTimeDisplay.textContent = '0:00';
-        totalDurationDisplay.textContent = '0:00';
-        renderPlaylist();
-        updateUI();
-    }
-
-    // --- UI Helpers (Unchanged) ---
+    // --- UI Helpers ---
     function renderPlaylist() {
         playlistContainer.innerHTML = '';
         if (!playlist.length) {
@@ -260,12 +220,31 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             emptyPlaylistMessage.style.display = 'none';
             playlist.forEach((track, index) => {
-                const item = document.createElement('div');
-                item.className = `p-2 rounded-md cursor-pointer transition-colors mb-1 text-sm truncate ${index === currentTrackIndex ? 'bg-indigo-600 text-white font-semibold' : 'hover:bg-gray-700'}`;
-                item.textContent = track.name;
-                item.title = track.name;
-                item.onclick = () => loadTrack(index);
-                playlistContainer.appendChild(item);
+                const isCurrentlyPlaying = (index === currentTrackIndex && isPlaying);
+                const itemClasses = `playlist-item flex items-center gap-4 p-3 rounded-md cursor-pointer transition-colors mb-1 ${index === currentTrackIndex ? 'bg-indigo-600/30' : 'hover:bg-gray-700'}`;
+                
+                const itemHTML = `
+                    <div class="${itemClasses}" data-index="${index}">
+                        <i class="fas fa-music text-gray-400"></i>
+                        <span class="flex-grow text-white truncate">${track.name}</span>
+                        <div class="now-playing-indicator">
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                        </div>
+                    </div>
+                `;
+                const itemEl = document.createElement('div');
+                itemEl.innerHTML = itemHTML;
+                itemEl.querySelector('.playlist-item').addEventListener('click', () => loadTrack(index));
+
+                // Add 'playing' class if the track is the one currently active
+                if (isCurrentlyPlaying) {
+                    itemEl.querySelector('.playlist-item').classList.add('playing');
+                }
+
+                playlistContainer.appendChild(itemEl.firstElementChild);
             });
         }
         updateUI();
@@ -277,7 +256,6 @@ document.addEventListener('DOMContentLoaded', () => {
         skipBackButton.disabled = playlist.length < 2;
         skipForwardButton.disabled = playlist.length < 2;
         seekBar.disabled = !hasTracks;
-        clearPlaylistButton.disabled = !hasTracks;
         
         playPauseButton.innerHTML = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
     }

@@ -1,6 +1,5 @@
 // worker.js
 
-// Import the Transformers.js library
 import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.10.0';
 
 // Singleton class to ensure the model is loaded only once
@@ -22,27 +21,53 @@ self.onmessage = async (event) => {
     try {
         const inputData = event.data.audio;
 
-        // 1. Load the AI model
-        // Inform the main thread that the model is loading
+        // 1. Load the AI model, passing a progress callback
         self.postMessage({ status: 'loading_model' });
         const transcriber = await MyTranscriptionPipeline.getInstance((progress) => {
-            // Send detailed progress updates to the main thread
-            self.postMessage({ status: 'model_progress', progress });
+            // FIX: Sanitize the model loading progress object before sending
+            self.postMessage({ 
+                status: 'model_progress', 
+                progress: {
+                    file: progress.file,
+                    progress: progress.progress,
+                    status: progress.status
+                }
+            });
         });
 
         // 2. Perform the transcription
-        // Inform the main thread that transcription is in progress
         self.postMessage({ status: 'transcribing' });
+        
+        const progress_callback = (progress) => {
+            // FIX: Sanitize the transcription progress object before sending
+            self.postMessage({ 
+                status: 'transcribe_progress', 
+                progress: {
+                    processed_chunks: progress.processed_chunks,
+                    total_chunks: progress.total_chunks
+                }
+            });
+        };
+
         const result = await transcriber(inputData, {
             return_timestamps: 'word',
             chunk_length_s: 30,
+            callback_function: progress_callback
         });
 
-        // 3. Send the final result back to the main thread
-        self.postMessage({ status: 'complete', result });
+        // 3. Sanitize the final result before sending
+        const sanitizedChunks = result.chunks.map(chunk => ({
+            text: chunk.text,
+            timestamp: chunk.timestamp
+        }));
+
+        self.postMessage({ 
+            status: 'complete', 
+            text: result.text,
+            chunks: sanitizedChunks
+        });
 
     } catch (err) {
-        // Inform the main thread of any errors
         self.postMessage({ status: 'error', message: err.message });
     }
 };

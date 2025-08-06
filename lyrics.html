@@ -3,16 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MP3 to Lyrics Converter</title>
+    <title>Synced Lyrics Viewer - Audio Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .main-nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background-color: #1f2937; color: white; }
+        .main-nav .logo { font-size: 1.5rem; font-weight: 700; }
+        .main-nav .nav-links a { color: #d1d5db; margin-left: 1.5rem; text-decoration: none; transition: color 0.2s; }
+        .main-nav .nav-links a:hover { color: white; }
+        .main-nav .nav-links a.active { color: white; font-weight: 600; }
+        .control-btn { background-color: #374151; color: white; padding: 0.75rem; border-radius: 0.5rem; border: none; cursor: pointer; transition: background-color 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .control-btn:hover:not(:disabled) { background-color: #4b5563; }
+        .control-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        /* Styles for the lyrics container and active line */
+        #lyrics-container { scroll-behavior: smooth; }
+        .lyric-line {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s, color 0.3s;
+            opacity: 0.5;
+        }
+        .lyric-line.active {
+            background-color: #4f46e5; /* indigo-600 */
+            color: white;
+            opacity: 1;
+            transform: scale(1.02);
+        }
+    </style>
 </head>
-<body>
-    <nav class="main-nav">
-        <div class="logo">Audio Hub</div>
+<body class="flex flex-col h-screen overflow-hidden bg-gray-900 text-white">
+
+    <!-- Shared navigation bar -->
+    <nav class="main-nav flex-shrink-0">
+        <div class="logo"><i class="fas fa-headphones-alt text-indigo-400"></i> Audio Hub</div>
         <div class="nav-links">
             <a href="index.html">Home</a>
             <a href="musicvisualizer.html">Visualizer</a>
@@ -21,78 +49,192 @@
         </div>
     </nav>
 
-    <div class="page-content-wrapper">
-        <div class="converter-box">
-            <h1 class="text-3xl font-bold mb-4">MP3 to Lyrics</h1>
-            <p class="text-gray-400 mb-6">Upload an MP3 to simulate lyrics generation.</p>
+    <!-- Main Content -->
+    <main id="main-content" class="flex-grow flex items-center justify-center p-4 md:p-8 transition-opacity duration-500">
+        <!-- Initial Upload Prompt -->
+        <div id="upload-prompt" class="text-center">
+            <i class="fas fa-microphone-alt text-6xl text-indigo-400 mb-4"></i>
+            <h1 class="text-4xl font-bold mb-2">Lyrics Generator</h1>
+            <p class="text-gray-400 mb-6">Upload an MP3 to generate and sync lyrics.</p>
+            <label for="lyricsMp3Input" class="control-btn bg-indigo-600 hover:bg-indigo-700 text-lg px-6 py-3">
+                <i class="fas fa-upload"></i> Select MP3 File
+            </label>
+            <input type="file" id="lyricsMp3Input" accept=".mp3" class="hidden">
+        </div>
 
-            <div class="mb-4">
-                <input type="file" id="mp3Input" accept=".mp3" class="hidden">
-                <label for="mp3Input" class="btn btn-primary">Upload MP3</label>
-                <p id="fileName" class="text-sm text-gray-500 mt-2 h-5"></p>
+        <!-- Lyrics Viewer (hidden by default) -->
+        <div id="lyrics-viewer" class="hidden w-full h-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Left Panel: Album Art & Controls -->
+            <div class="md:col-span-1 bg-gray-800 rounded-lg p-6 flex flex-col items-center justify-center text-center">
+                <img id="album-art" src="https://placehold.co/300x300/1f2937/374151?text=Album+Art" alt="Album Art" class="w-48 h-48 rounded-md shadow-lg mb-4">
+                <h2 id="song-title" class="text-2xl font-bold truncate">Song Title</h2>
+                <p id="song-artist" class="text-md text-gray-400 mb-6">Artist Name</p>
+                
+                <audio id="audio-player" class="w-full"></audio>
+
+                <div class="w-full max-w-xs flex items-center gap-3 mb-4">
+                    <span id="currentTime" class="w-12 text-center text-sm text-gray-400">0:00</span>
+                    <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1" disabled class="flex-grow">
+                    <span id="totalDuration" class="w-12 text-center text-sm text-gray-400">0:00</span>
+                </div>
+                <div class="flex items-center justify-center gap-4">
+                    <button id="playPauseBtn" class="control-btn text-2xl w-16 h-16 rounded-full" disabled><i class="fas fa-play"></i></button>
+                </div>
             </div>
-
-            <button id="convertButton" class="btn btn-primary" disabled>Convert</button>
-
-            <div id="loadingContainer" class="h-16 flex items-center justify-center" style="display: none;">
-                <div class="spinner"></div>
-            </div>
-
-            <div id="lyricsOutput">
-                Upload an MP3 and click "Convert" to see the simulated lyrics here.
+            <!-- Right Panel: Synced Lyrics -->
+            <div class="md:col-span-2 bg-gray-800 rounded-lg p-6 flex flex-col">
+                <h3 class="text-xl font-bold mb-4 border-b border-gray-700 pb-2">Lyrics</h3>
+                <div id="lyrics-container" class="flex-grow overflow-y-auto pr-4 text-2xl font-medium leading-relaxed">
+                    <!-- Lyrics will be inserted here -->
+                </div>
             </div>
         </div>
-    </div>
+    </main>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const lyricsMp3Input = document.getElementById('lyricsMp3Input');
+        const mainContent = document.getElementById('main-content');
+        const uploadPrompt = document.getElementById('upload-prompt');
+        const lyricsViewer = document.getElementById('lyrics-viewer');
+        
+        const audioPlayer = document.getElementById('audio-player');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const seekBar = document.getElementById('seekBar');
+        const currentTimeEl = document.getElementById('currentTime');
+        const totalDurationEl = document.getElementById('totalDuration');
+        
+        const songTitleEl = document.getElementById('song-title');
+        const lyricsContainer = document.getElementById('lyrics-container');
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const mp3Input = document.getElementById('mp3Input');
-            const convertButton = document.getElementById('convertButton');
-            const lyricsOutput = document.getElementById('lyricsOutput');
-            const fileNameDisplay = document.getElementById('fileName');
-            const loadingContainer = document.getElementById('loadingContainer');
+        let isSeeking = false;
+        let lyricsData = [];
 
-            let selectedFile = null;
-
-            mp3Input.addEventListener('change', (event) => {
-                if (event.target.files && event.target.files[0]) {
-                    selectedFile = event.target.files[0];
-                    fileNameDisplay.textContent = `Selected: ${selectedFile.name}`;
-                    convertButton.disabled = false;
-                } else {
-                    selectedFile = null;
-                    fileNameDisplay.textContent = '';
-                    convertButton.disabled = true;
-                }
-            });
-
-            convertButton.addEventListener('click', () => {
-                if (!selectedFile) return;
-
-                convertButton.disabled = true;
-                loadingContainer.style.display = 'flex';
-                lyricsOutput.style.display = 'none';
-                
-                setTimeout(() => {
-                    loadingContainer.style.display = 'none';
-                    lyricsOutput.style.display = 'block';
-                    
-                    const dummyLyrics = `(Verse 1)
-This is a simulated lyric for:
-${selectedFile.name}
-
-(Chorus)
-The code is working, the music plays,
-Visuals dance in a colorful haze.
-This is a demo, a concept to see,
-A multi-page site for you and me.`;
-
-                    lyricsOutput.textContent = dummyLyrics;
-                    convertButton.disabled = false;
-
-                }, 3000);
-            });
+        lyricsMp3Input.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                loadFile(file);
+            }
         });
-    </script>
+
+        function loadFile(file) {
+            songTitleEl.textContent = file.name.replace('.mp3', '');
+            const fileUrl = URL.createObjectURL(file);
+            audioPlayer.src = fileUrl;
+            
+            // Show the viewer and hide the prompt
+            uploadPrompt.style.display = 'none';
+            lyricsViewer.classList.remove('hidden');
+            lyricsViewer.classList.add('grid');
+            
+            generateDummyLyrics();
+            renderLyrics();
+        }
+        
+        function generateDummyLyrics() {
+            lyricsData = [
+                { time: 2, text: "In the heart of the city, a revolution starts to brew," },
+                { time: 6, text: "A whisper of defiance, for the many, not the few." },
+                { time: 10, text: "The old world's chains are heavy, but the future's in our sight," },
+                { time: 14, text: "We're fighting for the dawn, and we're turning wrong to right." },
+                { time: 18, text: "From the factories and the fields, a united voice will rise," },
+                { time: 22, text: "With a fire in our hearts, and a promise in our eyes." },
+                { time: 26, text: "(Chorus) Oh, the red flag's flying, a symbol bold and true," },
+                { time: 30, text: "For a world of equals, for me and for you." },
+                { time: 34, text: "No masters and no servants, just comrades side by side," },
+                { time: 38, text: "On the unstoppable, historic, revolutionary tide." },
+                { time: 42, text: "The dialectic's turning, history's great design," },
+                { time: 46, text: "The power of the people, a force truly divine." },
+                { time: 50, text: "So raise your voices higher, let the anthem fill the air," },
+                { time: 54, text: "A future built on justice, beyond compare." },
+            ];
+        }
+
+        function renderLyrics() {
+            lyricsContainer.innerHTML = '';
+            lyricsData.forEach(line => {
+                const p = document.createElement('p');
+                p.textContent = line.text;
+                p.dataset.time = line.time;
+                p.className = 'lyric-line';
+                lyricsContainer.appendChild(p);
+            });
+        }
+
+        // --- Audio Player Logic ---
+        audioPlayer.addEventListener('loadedmetadata', () => {
+            totalDurationEl.textContent = formatTime(audioPlayer.duration);
+            playPauseBtn.disabled = false;
+            seekBar.disabled = false;
+        });
+
+        audioPlayer.addEventListener('timeupdate', () => {
+            if (!isSeeking) {
+                seekBar.value = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
+            }
+            updateLyricsHighlight(audioPlayer.currentTime);
+        });
+
+        audioPlayer.addEventListener('play', () => {
+            playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+        });
+
+        audioPlayer.addEventListener('pause', () => {
+            playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+        });
+
+        playPauseBtn.addEventListener('click', () => {
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+            } else {
+                audioPlayer.pause();
+            }
+        });
+
+        seekBar.addEventListener('mousedown', () => { isSeeking = true; });
+        seekBar.addEventListener('mouseup', () => {
+            isSeeking = false;
+            audioPlayer.currentTime = (seekBar.value / 100) * audioPlayer.duration;
+        });
+        seekBar.addEventListener('input', () => {
+            if (isSeeking) {
+                currentTimeEl.textContent = formatTime((seekBar.value / 100) * audioPlayer.duration);
+            }
+        });
+
+        function updateLyricsHighlight(currentTime) {
+            let activeLine = null;
+            const lines = lyricsContainer.querySelectorAll('.lyric-line');
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const nextLine = lines[i + 1];
+                const lineTime = parseFloat(line.dataset.time);
+                const nextLineTime = nextLine ? parseFloat(nextLine.dataset.time) : audioPlayer.duration;
+
+                if (currentTime >= lineTime && currentTime < nextLineTime) {
+                    activeLine = line;
+                }
+                line.classList.remove('active');
+            }
+
+            if (activeLine) {
+                activeLine.classList.add('active');
+                // Scroll the active line into the center of the view
+                const containerRect = lyricsContainer.getBoundingClientRect();
+                const lineRect = activeLine.getBoundingClientRect();
+                lyricsContainer.scrollTop += lineRect.top - containerRect.top - (containerRect.height / 2) + (lineRect.height / 2);
+            }
+        }
+
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return '0:00';
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+    });
+  </script>
 </body>
 </html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MP3 to Lyrics Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="main-nav">
+        <div class="logo">Audio Hub</div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="musicvisualizer.html">Visualizer</a>
+            <a href="editor.html">Editor</a>
+            <a href="lyrics.html" class="active">Lyrics Converter</a>
+        </div>
+    </nav>
+
+    <div class="page-content-wrapper">
+        <div class="converter-box">
+            <h1 class="text-3xl font-bold mb-4">MP3 to Lyrics</h1>
+            <p class="text-gray-400 mb-6">Upload an MP3 to simulate lyrics generation.</p>
+
+            <div class="mb-4">
+                <input type="file" id="mp3Input" accept=".mp3" class="hidden">
+                <label for="mp3Input" class="btn btn-primary">Upload MP3</label>
+                <p id="fileName" class="text-sm text-gray-500 mt-2 h-5"></p>
+            </div>
+
+            <button id="convertButton" class="btn btn-primary" disabled>Convert</button>
+
+            <div id="loadingContainer" class="h-16 flex items-center justify-center" style="display: none;">
+                <div class="spinner"></div>
+            </div>
+
+            <div id="lyricsOutput">
+                Upload an MP3 and click "Convert" to see the simulated lyrics here.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const mp3Input = document.getElementById('mp3Input');
+            const convertButton = document.getElementById('convertButton');
+            const lyricsOutput = document.getElementById('lyricsOutput');
+            const fileNameDisplay = document.getElementById('fileName');
+            const loadingContainer = document.getElementById('loadingContainer');
+
+            let selectedFile = null;
+
+            mp3Input.addEventListener('change', (event) => {
+                if (event.target.files && event.target.files[0]) {
+                    selectedFile = event.target.files[0];
+                    fileNameDisplay.textContent = `Selected: ${selectedFile.name}`;
+                    convertButton.disabled = false;
+                } else {
+                    selectedFile = null;
+                    fileNameDisplay.textContent = '';
+                    convertButton.disabled = true;
+                }
+            });
+
+            convertButton.addEventListener('click', () => {
+                if (!selectedFile) return;
+
+                convertButton.disabled = true;
+                loadingContainer.style.display = 'flex';
+                lyricsOutput.style.display = 'none';
+                
+                setTimeout(() => {
+                    loadingContainer.style.display = 'none';
+                    lyricsOutput.style.display = 'block';
+                    
+                    const dummyLyrics = `(Verse 1)
+This is a simulated lyric for:
+${selectedFile.name}
+
+(Chorus)
+The code is working, the music plays,
+Visuals dance in a colorful haze.
+This is a demo, a concept to see,
+A multi-page site for you and me.`;
+
+                    lyricsOutput.textContent = dummyLyrics;
+                    convertButton.disabled = false;
+
+                }, 3000);
+            });
+        });
+    </script>
+</body>
+</html>

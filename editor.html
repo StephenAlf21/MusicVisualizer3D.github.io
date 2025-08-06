@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MP3 Editor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/7.0.0/wavesurfer.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <nav class="main-nav">
+        <div class="logo">Audio Hub</div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="musicvisualizer.html">Visualizer</a>
+            <a href="editor.html" class="active">Editor</a>
+            <a href="lyrics.html">Lyrics Converter</a>
+        </div>
+    </nav>
+
+    <div class="page-content-wrapper">
+        <div class="audio-editor">
+            <div class="editor-header">
+                <div class="flex items-center gap-4">
+                    <i class="fas fa-wave-square text-3xl"></i>
+                    <h1 class="text-2xl font-bold">MP3 Editor</h1>
+                </div>
+                <div class="file-input-container">
+                    <input type="file" id="fileInput" accept="audio/mp3" class="hidden" />
+                    <label for="fileInput" class="editor-btn editor-btn-secondary">
+                        <i class="fas fa-file-audio"></i> Select MP3 File
+                    </label>
+                </div>
+            </div>
+            
+            <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-2 bg-gray-800 p-4 rounded-lg">
+                    <div id="waveform"></div>
+                    <div class="flex justify-between text-sm text-gray-400 mt-2">
+                        <span id="currentTime">00:00</span>
+                        <span id="durationTime">00:00</span>
+                    </div>
+                    
+                    <div class="flex gap-4 mt-4">
+                        <button id="playBtn" class="editor-btn editor-btn-primary flex-1">
+                            <i class="fas fa-play"></i> Play
+                        </button>
+                        <button id="stopBtn" class="editor-btn editor-btn-secondary flex-1">
+                            <i class="fas fa-stop"></i> Stop
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-800 p-4 rounded-lg">
+                    <div class="mb-6 pb-6 border-b border-gray-700">
+                        <h2 class="text-lg font-semibold mb-3 flex items-center gap-2"><i class="fas fa-cut"></i> Trim Audio</h2>
+                        <p class="text-sm text-gray-400">Trimming functionality is for demonstration.</p>
+                    </div>
+                    
+                    <div class="mb-6 pb-6 border-b border-gray-700">
+                        <h2 class="text-lg font-semibold mb-3 flex items-center gap-2"><i class="fas fa-sliders-h"></i> Audio Effects</h2>
+                        <p class="text-sm text-gray-400">Effects are for demonstration.</p>
+                    </div>
+                    
+                    <div>
+                        <h2 class="text-lg font-semibold mb-3 flex items-center gap-2"><i class="fas fa-file-export"></i> Export</h2>
+                        <button id="downloadBtn" class="editor-btn editor-btn-primary w-full" disabled>
+                            <i class="fas fa-download"></i> Download (Demo)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const fileInput = document.getElementById('fileInput');
+      const playBtn = document.getElementById('playBtn');
+      const stopBtn = document.getElementById('stopBtn');
+      const currentTimeEl = document.getElementById('currentTime');
+      const durationTimeEl = document.getElementById('durationTime');
+      const downloadBtn = document.getElementById('downloadBtn');
+      
+      const wavesurfer = WaveSurfer.create({
+        container: '#waveform',
+        waveColor: '#4f46e5',
+        progressColor: '#7c3aed',
+        cursorColor: '#ffffff',
+        height: 150,
+        barWidth: 2,
+        responsive: true,
+      });
+      
+      fileInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+          const fileURL = URL.createObjectURL(file);
+          wavesurfer.load(fileURL);
+          downloadBtn.disabled = false;
+        }
+      });
+      
+      playBtn.addEventListener('click', () => wavesurfer.playPause());
+      stopBtn.addEventListener('click', () => wavesurfer.stop());
+      
+      wavesurfer.on('timeupdate', time => {
+        currentTimeEl.textContent = formatTime(time);
+      });
+      
+      wavesurfer.on('ready', () => {
+        durationTimeEl.textContent = formatTime(wavesurfer.getDuration());
+      });
+
+      wavesurfer.on('play', () => {
+          playBtn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+      });
+        
+      wavesurfer.on('pause', () => {
+          playBtn.innerHTML = '<i class="fas fa-play"></i> Play';
+      });
+
+      downloadBtn.addEventListener('click', () => {
+          // A non-blocking notification would be better in a real app
+          alert('This is a demo. File download is not implemented.');
+      });
+      
+      function formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      }
+    });
+  </script>
+</body>
+</html>

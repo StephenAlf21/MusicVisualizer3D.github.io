@@ -60,18 +60,25 @@ function initThree() {
 
 /* ---------- audio setup ---------- */
 function initAudio() {
-  listener = new THREE.AudioListener();
-  ctx = listener.context;
-  camera.add(listener);
+  // **FIX**: Added a try...catch block to expose any audio initialization errors.
+  try {
+    listener = new THREE.AudioListener();
+    ctx = listener.context;
+    camera.add(listener);
 
-  audio = new THREE.Audio(listener);
-  audio.setVolume(volumeSlider.value / 100);
+    audio = new THREE.Audio(listener);
+    audio.setVolume(volumeSlider.value / 100);
 
-  // Manually create a serial audio graph:
-  // The audio signal will flow from the source, through the analyser, then to the speakers.
-  audio.gain.disconnect();
-  analyser = new THREE.AudioAnalyser(audio, 512);
-  analyser.analyser.connect(listener.getInput());
+    // Manually create a serial audio graph:
+    // The audio signal will flow from the source, through the analyser, then to the speakers.
+    audio.gain.disconnect();
+    analyser = new THREE.AudioAnalyser(audio, 512);
+    analyser.analyser.connect(listener.getInput());
+  } catch(e) {
+    console.error("Audio init failed:", e);
+    // Display a permanent error message to the user.
+    showToast("Error: Audio system failed to start. Please try refreshing.", false);
+  }
 }
 
 
@@ -141,7 +148,7 @@ function onWindowResize() {
 function addFilesToPlaylist(event) {
   if (!event.target.files.length) return;
   
-  // **FIX**: Do not auto-play. Just add files to the playlist.
+  // Do not auto-play. Just add files to the playlist.
   // The user must click "Play" to start the audio context.
   for (const file of event.target.files) {
     playlist.push({ file: file, name: file.name });
@@ -320,11 +327,11 @@ function clearPlaylist() {
   renderPlaylist();
 }
 
-function showToast(text, duration = 4000) {
+function showToast(text, autoHide = true) {
   messageBar.textContent = text;
   messageBar.style.display = 'block';
-  if (duration) {
-    setTimeout(() => { messageBar.style.display = 'none'; }, duration);
+  if (autoHide) {
+    setTimeout(() => { messageBar.style.display = 'none'; }, 4000);
   }
 }
 

@@ -13,7 +13,6 @@
     <style>
         .word { transition: color 0.2s, opacity 0.2s; opacity: 0.6; }
         .word.active { color: #f87171; opacity: 1; font-weight: 700; }
-        /* Progress bar for model loading */
         #progress-bar-container { background-color: #374151; }
         #progress-bar { transition: width 0.4s ease; }
     </style>
@@ -49,6 +48,10 @@
                     <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1" disabled class="flex-grow">
                     <span id="totalDuration" class="w-14 text-center text-sm text-gray-400">0:00</span>
                 </div>
+                <div class="mt-6 flex justify-center gap-4">
+                    <button id="downloadBtn" class="control-btn bg-blue-600 hover:bg-blue-700"><i class="fas fa-download"></i> Download .txt</button>
+                    <button id="restartBtn" class="control-btn bg-gray-600 hover:bg-gray-500"><i class="fas fa-redo"></i> Start Over</button>
+                </div>
             </div>
 
             <div id="upload-ui" class="text-center">
@@ -60,7 +63,6 @@
                     <p id="fileName" class="text-sm text-gray-500 mt-2 h-5"></p>
                 </div>
                 <div id="status" class="mt-6 text-indigo-300 min-h-[24px]"></div>
-                <!-- Progress Bar -->
                 <div id="progress-bar-container" class="w-full rounded-full h-2.5 mt-2 hidden">
                     <div id="progress-bar" class="bg-indigo-500 h-2.5 rounded-full" style="width: 0%"></div>
                 </div>
@@ -70,6 +72,8 @@
   
   <script type="module">
     let isSeeking = false;
+    let transcribedText = '';
+    let lastChunkTime = 0;
 
     const mp3Input = document.getElementById('mp3Input');
     const fileNameDisplay = document.getElementById('fileName');
@@ -86,6 +90,9 @@
     const seekBar = document.getElementById('seekBar');
     const currentTimeEl = document.getElementById('currentTime');
     const totalDurationEl = document.getElementById('totalDuration');
+    
+    const downloadBtn = document.getElementById('downloadBtn');
+    const restartBtn = document.getElementById('restartBtn');
 
     mp3Input.addEventListener('change', async (e) => {
         const file = e.target.files[0];
@@ -123,24 +130,37 @@
             const worker = new Worker('worker.js', { type: 'module' });
 
             worker.onmessage = (event) => {
-                const { status, message, result, progress } = event.data;
+                const { status, message, text, chunks, progress } = event.data;
                 switch (status) {
                     case 'loading_model':
                         statusDisplay.textContent = "Loading AI model (first load is slow)...";
                         break;
                     case 'model_progress':
-                        // Model loading is 50% of the process (from 25% to 75%)
+                        // The 'progress' object is now guaranteed to be clean
                         progressBar.style.width = `${25 + progress.progress * 0.5}%`;
                         break;
                     case 'transcribing':
-                        statusDisplay.textContent = "Transcribing audio... (this may take a moment)";
-                        // Set progress to 75% when transcription starts
+                        statusDisplay.textContent = "Transcribing audio...";
                         progressBar.style.width = '75%';
+                        lastChunkTime = Date.now();
+                        break;
+                    case 'transcribe_progress':
+                        // The 'progress' object is now guaranteed to be clean
+                        const chunkProgress = progress.processed_chunks / progress.total_chunks;
+                        progressBar.style.width = `${75 + chunkProgress * 25}%`;
+                        
+                        const timeElapsed = Date.now() - lastChunkTime;
+                        const timePerChunk = timeElapsed / progress.processed_chunks;
+                        const remainingChunks = progress.total_chunks - progress.processed_chunks;
+                        const estimatedRemaining = Math.round((remainingChunks * timePerChunk) / 1000);
+                        
+                        statusDisplay.textContent = `Transcribing... (Chunk ${progress.processed_chunks}/${progress.total_chunks}) - ETA: ${estimatedRemaining}s`;
                         break;
                     case 'complete':
                         progressBar.style.width = '100%';
-                        setTimeout(() => { // Give time for the 100% bar to show
-                            renderLyrics(result.chunks);
+                        transcribedText = text;
+                        setTimeout(() => {
+                            renderLyrics(chunks);
                             uploadUi.style.display = 'none';
                             playerUi.style.display = 'flex';
                         }, 500);
@@ -166,17 +186,41 @@
 
     function renderLyrics(chunks) {
         lyricsOutput.innerHTML = '';
-        chunks.forEach(chunk => {
-            const span = document.createElement('span');
-            span.textContent = chunk.text + ' ';
-            span.className = 'word';
-            span.dataset.start = chunk.timestamp[0];
-            span.dataset.end = chunk.timestamp[1];
-            lyricsOutput.appendChild(span);
-        });
+        if (chunks) {
+            chunks.forEach(chunk => {
+                const span = document.createElement('span');
+                span.textContent = chunk.text + ' ';
+                span.className = 'word';
+                span.dataset.start = chunk.timestamp[0];
+                span.dataset.end = chunk.timestamp[1];
+                lyricsOutput.appendChild(span);
+            });
+        }
     }
 
-    // --- PLAYER LOGIC ---
+    // --- BUTTON AND PLAYER LOGIC ---
+    downloadBtn.addEventListener('click', () => {
+        const blob = new Blob([transcribedText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${fileNameDisplay.textContent.replace('.mp3', '')}_lyrics.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    restartBtn.addEventListener('click', () => {
+        audioPlayer.pause();
+        audioPlayer.src = '';
+        playerUi.style.display = 'none';
+        uploadUi.style.display = 'block';
+        mp3Input.value = '';
+        mp3Input.disabled = false;
+        fileNameDisplay.textContent = '';
+        statusDisplay.textContent = '';
+        progressBarContainer.style.display = 'none';
+    });
+
     audioPlayer.addEventListener('loadedmetadata', () => {
         totalDurationEl.textContent = formatTime(audioPlayer.duration);
         playPauseBtn.disabled = false;

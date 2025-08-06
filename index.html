@@ -3,55 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Hub - Welcome</title>
+    <title>Audio Hub - Your All-in-One Audio Toolkit</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Additional styles for the landing page for a more polished look */
+        .hero-section {
+            background: linear-gradient(rgba(17, 24, 39, 0.8), rgba(17, 24, 39, 1)), url('https://placehold.co/1920x1080/111827/374151?text=Abstract+Soundwaves') no-repeat center center/cover;
+        }
+        .feature-card-v2 {
+            background-color: #1f2937; /* bg-gray-800 */
+            border: 1px solid #374151; /* border-gray-700 */
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .feature-card-v2:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.2);
+            border-color: #4f46e5; /* accent-primary */
+        }
+    </style>
 </head>
-<body>
-    <!-- Shared navigation bar -->
-    <nav class="main-nav">
-        <div class="logo">Audio Hub</div>
-        <div class="nav-links">
-            <a href="index.html" class="active">Home</a>
-            <a href="musicvisualizer.html">Visualizer</a>
-            <a href="editor.html">Editor</a>
-            <a href="lyrics.html">Lyrics Converter</a>
+<body class="bg-gray-900 text-gray-200">
+
+    <!-- Header & Navigation -->
+    <header class="bg-gray-800/80 backdrop-blur-sm sticky top-0 z-50 border-b border-gray-700">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="text-2xl font-bold text-white flex items-center gap-2">
+                <i class="fas fa-headphones-alt text-indigo-400"></i>
+                <span>Audio Hub</span>
+            </div>
+            <div class="hidden md:flex items-center space-x-2">
+                <a href="index.html" class="px-4 py-2 text-white bg-indigo-600 rounded-md font-semibold">Home</a>
+                <a href="musicvisualizer.html" class="px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-md transition">Visualizer</a>
+                <a href="editor.html" class="px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-md transition">Editor</a>
+                <a href="lyrics.html" class="px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-md transition">Lyrics Converter</a>
+            </div>
+            <button id="mobile-menu-button" class="md:hidden text-white focus:outline-none">
+                <i class="fas fa-bars text-2xl"></i>
+            </button>
+        </nav>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden px-4 pt-2 pb-4 space-y-2">
+            <a href="index.html" class="block px-4 py-2 text-white bg-indigo-600 rounded-md font-semibold">Home</a>
+            <a href="musicvisualizer.html" class="block px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-md transition">Visualizer</a>
+            <a href="editor.html" class="block px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-md transition">Editor</a>
+            <a href="lyrics.html" class="block px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-md transition">Lyrics Converter</a>
         </div>
-    </nav>
+    </header>
 
-    <!-- Main content area for the landing page -->
-    <div class="page-content-wrapper">
-        <div class="text-center">
-            <h1 class="text-5xl font-bold mb-4">Welcome to Audio Hub</h1>
-            <p class="text-xl text-gray-400 mb-12">Your all-in-one destination for audio creativity.</p>
-
-            <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                <!-- Feature 1: Visualizer -->
-                <a href="musicvisualizer.html" class="feature-card">
-                    <i class="fas fa-chart-bar"></i>
-                    <h2 class="text-2xl font-bold mb-2">Music Visualizer</h2>
-                    <p class="text-gray-400">Experience your music like never before with our stunning 3D visualizer. Create playlists and watch the beats come to life.</p>
-                </a>
-
-                <!-- Feature 2: Editor -->
-                <a href="editor.html" class="feature-card">
-                    <i class="fas fa-cut"></i>
-                    <h2 class="text-2xl font-bold mb-2">MP3 Editor</h2>
-                    <p class="text-gray-400">A simple interface to view your audio waveform. (Trimming and effects are for demonstration purposes).</p>
-                </a>
-
-                <!-- Feature 3: Lyrics Converter -->
-                <a href="lyrics.html" class="feature-card">
-                    <i class="fas fa-file-alt"></i>
-                    <h2 class="text-2xl font-bold mb-2">Lyrics Converter</h2>
-                    <p class="text-gray-400">Simulate generating lyrics from your favorite MP3 files with our futuristic (and currently simulated) tool.</p>
+    <main>
+        <!-- Hero Section -->
+        <section class="hero-section text-white text-center py-20 md:py-32">
+            <div class="container mx-auto px-6">
+                <h1 class="text-4xl md:text-6xl font-extrabold leading-tight mb-4">Bring Your Audio to Life</h1>
+                <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-8">The ultimate toolkit for music lovers and creators. Visualize, edit, and explore your sound in ways you never thought possible.</p>
+                <a href="musicvisualizer.html" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full text-lg transition duration-300 transform hover:scale-105">
+                    Launch Visualizer <i class="fas fa-arrow-right ml-2"></i>
                 </a>
             </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="py-20 bg-gray-900">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-white">Our Core Features</h2>
+                    <p class="text-gray-400 mt-2">Everything you need to interact with your audio files.</p>
+                </div>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <!-- Feature 1: Visualizer -->
+                    <a href="musicvisualizer.html" class="feature-card-v2 rounded-lg p-8 text-center">
+                        <i class="fas fa-chart-bar text-4xl text-indigo-400 mb-4"></i>
+                        <h3 class="text-2xl font-bold mb-2">3D Visualizer</h3>
+                        <p class="text-gray-400">Experience your music with a stunning, real-time 3D visualizer. Watch the beats come to life.</p>
+                    </a>
+                    <!-- Feature 2: Editor -->
+                    <a href="editor.html" class="feature-card-v2 rounded-lg p-8 text-center">
+                        <i class="fas fa-cut text-4xl text-indigo-400 mb-4"></i>
+                        <h3 class="text-2xl font-bold mb-2">Waveform Editor</h3>
+                        <p class="text-gray-400">View your audio's waveform in detail. A simple interface to simulate basic editing functionality.</p>
+                    </a>
+                    <!-- Feature 3: Lyrics Converter -->
+                    <a href="lyrics.html" class="feature-card-v2 rounded-lg p-8 text-center">
+                        <i class="fas fa-file-alt text-4xl text-indigo-400 mb-4"></i>
+                        <h3 class="text-2xl font-bold mb-2">Lyrics Generator</h3>
+                        <p class="text-gray-400">Simulate generating lyrics from your favorite MP3 files with our futuristic (and fun) tool.</p>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works Section (Placeholder) -->
+        <section class="py-20 bg-gray-800">
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-12">Simple Steps to Get Started</h2>
+                <div class="flex flex-col md:flex-row justify-center items-center gap-8 md:gap-16">
+                    <div class="flex items-center gap-4">
+                        <div class="bg-indigo-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl font-bold">1</div>
+                        <p class="text-lg">Upload Your MP3</p>
+                    </div>
+                    <i class="fas fa-arrow-down md:fa-arrow-right text-2xl text-gray-500"></i>
+                    <div class="flex items-center gap-4">
+                        <div class="bg-indigo-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl font-bold">2</div>
+                        <p class="text-lg">Choose Your Tool</p>
+                    </div>
+                    <i class="fas fa-arrow-down md:fa-arrow-right text-2xl text-gray-500"></i>
+                    <div class="flex items-center gap-4">
+                        <div class="bg-indigo-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl font-bold">3</div>
+                        <p class="text-lg">Enjoy the Experience</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 border-t border-gray-700">
+        <div class="container mx-auto px-6 py-8">
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- About Column -->
+                <div>
+                    <h3 class="text-lg font-semibold text-white mb-4">About Audio Hub</h3>
+                    <p class="text-gray-400">This project is a demonstration of modern web technologies for creating interactive audio applications. Built with HTML, Tailwind CSS, and Three.js.</p>
+                </div>
+                <!-- Links Column -->
+                <div>
+                    <h3 class="text-lg font-semibold text-white mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="index.html" class="text-gray-400 hover:text-indigo-400 transition">Home</a></li>
+                        <li><a href="musicvisualizer.html" class="text-gray-400 hover:text-indigo-400 transition">Visualizer</a></li>
+                        <li><a href="editor.html" class="text-gray-400 hover:text-indigo-400 transition">Editor</a></li>
+                        <li><a href="lyrics.html" class="text-gray-400 hover:text-indigo-400 transition">Lyrics Converter</a></li>
+                    </ul>
+                </div>
+                <!-- Social Media Column -->
+                <div>
+                    <h3 class="text-lg font-semibold text-white mb-4">Follow Us</h3>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-indigo-400 transition text-2xl"><i class="fab fa-github"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-indigo-400 transition text-2xl"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-indigo-400 transition text-2xl"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 border-t border-gray-700 pt-6 text-center text-gray-500">
+                <p>&copy; 2024 Audio Hub. All Rights Reserved. (Placeholder)</p>
+            </div>
         </div>
-    </div>
+    </footer>
+
+    <script>
+        // Basic mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+    </script>
+
 </body>
 </html>

@@ -9,18 +9,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Link to the main stylesheet -->
+    <link rel="stylesheet" href="style.css">
     <style>
         body { 
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6; /* bg-gray-100 */
         }
         
-        /* Custom red selection color */
-        ::selection {
-            background-color: #ef4444; /* red-500 */
-            color: white;
-        }
-
         /* p5.js canvas container */
         #p5-canvas-container {
             position: absolute;
@@ -115,9 +111,37 @@
         </main>
 
         <!-- Footer -->
-        <footer class="bg-gray-800 text-white">
-            <div class="container mx-auto px-6 py-8 text-center">
-                <p>&copy; 2024 Audio Hub. All Rights Reserved. (Placeholder)</p>
+        <footer class="bg-gray-900 text-gray-300">
+            <div class="container mx-auto px-6 py-12">
+                <div class="grid md:grid-cols-3 gap-8">
+                    <!-- About Column -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-white mb-4">About Audio Hub</h3>
+                        <p class="text-gray-400">This project is a demonstration of modern web technologies for creating interactive audio applications. Built with HTML, Tailwind CSS, and JavaScript libraries.</p>
+                    </div>
+                    <!-- Links Column -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-white mb-4">Quick Links</h3>
+                        <ul class="space-y-2">
+                            <li><a href="index.html" class="text-gray-400 hover:text-red-500 transition">Home</a></li>
+                            <li><a href="musicvisualizer.html" class="text-gray-400 hover:text-red-500 transition">Visualizer</a></li>
+                            <li><a href="editor.html" class="text-gray-400 hover:text-red-500 transition">Editor</a></li>
+                            <li><a href="lyrics.html" class="text-gray-400 hover:text-red-500 transition">Lyrics Converter</a></li>
+                        </ul>
+                    </div>
+                    <!-- Social Media Column -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-white mb-4">Follow Us</h3>
+                        <div class="flex space-x-4">
+                            <a href="#" class="text-gray-400 hover:text-red-500 transition text-2xl"><i class="fab fa-github"></i></a>
+                            <a href="#" class="text-gray-400 hover:text-red-500 transition text-2xl"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="text-gray-400 hover:text-red-500 transition text-2xl"><i class="fab fa-linkedin"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-12 border-t border-gray-700 pt-8 text-center text-gray-500">
+                    <p>&copy; 2024 Audio Hub. All Rights Reserved. (Placeholder)</p>
+                </div>
             </div>
         </footer>
     </div>

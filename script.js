@@ -1,4 +1,9 @@
 import * as THREE from 'three';
+// Import additional modules for rendering thick lines
+import { Line2 } from 'three/addons/lines/Line2.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
+
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -10,8 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let dataArray;
     
     // Visualizer objects
-    let particleSystem;
-    let originalPositions; // To store the base position of vertices
+    let web; 
+    let originalPositions; 
 
     // --- DOM Elements ---
     const $ = id => document.getElementById(id);
@@ -27,6 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const playlistContainer = $('playlist-items-container');
     const emptyPlaylistMessage = $('empty-playlist-message');
     const messageBar = $('message-bar');
+    const currentTrackNameDisplay = $('currentTrackName');
+    const volumeSlider = $('volumeSlider');
+    const volumeIcon = $('volumeIcon');
+
 
     // --- Initialization ---
     function init() {
@@ -40,30 +49,40 @@ document.addEventListener('DOMContentLoaded', () => {
         scene = new THREE.Scene();
         
         camera = new THREE.PerspectiveCamera(75, visualizerContainer.clientWidth / visualizerContainer.clientHeight, 0.1, 1000);
-        camera.position.z = 120;
+        camera.position.z = 100;
 
         renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(visualizerContainer.clientWidth, visualizerContainer.clientHeight);
-        renderer.setClearColor(0x000000, 0); // Transparent background
+        renderer.setClearColor(0x000000, 0);
 
         createVisualizerWeb();
     }
 
     function createVisualizerWeb() {
-        const geometry = new THREE.IcosahedronGeometry(60, 8);
-        originalPositions = new Float32Array(geometry.attributes.position.array);
-        
-        // Use Points instead of LineSegments for a more "particle" look
-        const material = new THREE.PointsMaterial({
-            size: 0.8,
-            color: 0x4299e1, // Default to blue
-            transparent: true,
-            opacity: 0.8,
-            blending: THREE.AdditiveBlending // Brighter where points overlap
+        // 1. Create the base shape and get its edges
+        const baseGeometry = new THREE.IcosahedronGeometry(40, 8);
+        const edges = new THREE.EdgesGeometry(baseGeometry);
+        originalPositions = new Float32Array(edges.attributes.position.array);
+
+        // 2. Create a LineGeometry for the thick lines
+        const geometry = new LineGeometry();
+        geometry.setPositions(originalPositions);
+
+        // 3. Create the special material for thick lines
+        const material = new LineMaterial({
+            color: 0x4299e1,
+            linewidth: 1.5, // Control the thickness here (in pixels)
+            vertexColors: false,
+            dashed: false,
+            alphaToCoverage: true, // For smoother edges
         });
-        particleSystem = new THREE.Points(geometry, material);
-        scene.add(particleSystem);
+        // The material needs to know the screen resolution
+        material.resolution.set(visualizerContainer.clientWidth, visualizerContainer.clientHeight);
+
+        // 4. Create the Line2 object
+        web = new Line2(geometry, material);
+        scene.add(web);
     }
 
     function unlockAndInitAudio() {
@@ -72,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             audioElement = new Audio();
+            audioElement.volume = volumeSlider.value / 100;
             
             analyser = audioContext.createAnalyser();
             analyser.fftSize = 512;
@@ -104,10 +124,30 @@ document.addEventListener('DOMContentLoaded', () => {
         skipBackButton.onclick = () => loadTrack(currentTrackIndex - 1);
         skipForwardButton.onclick = () => loadTrack(currentTrackIndex + 1);
         
+        seekBar.oninput = () => {
+            const progress = seekBar.value;
+            seekBar.style.setProperty('--seek-before-width', `${progress}%`);
+        };
         seekBar.onmousedown = () => { isSeeking = true; };
         seekBar.onmouseup = () => { isSeeking = false; seekToPosition(); };
         seekBar.addEventListener('touchstart', () => { isSeeking = true; });
         seekBar.addEventListener('touchend', () => { isSeeking = false; seekToPosition(); });
+
+        volumeSlider.oninput = handleVolumeChange;
+    }
+    
+    function handleVolumeChange() {
+        if(audioElement) {
+            audioElement.volume = volumeSlider.value / 100;
+        }
+        const volume = volumeSlider.value;
+        if (volume == 0) {
+            volumeIcon.className = 'fas fa-volume-mute text-gray-400';
+        } else if (volume < 50) {
+            volumeIcon.className = 'fas fa-volume-down text-gray-400';
+        } else {
+            volumeIcon.className = 'fas fa-volume-up text-gray-400';
+        }
     }
 
     function onWindowResize() {
@@ -115,67 +155,56 @@ document.addEventListener('DOMContentLoaded', () => {
         camera.aspect = visualizerContainer.clientWidth / visualizerContainer.clientHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(visualizerContainer.clientWidth, visualizerContainer.clientHeight);
+        
+        // Update the material resolution on resize
+        if (web) {
+            web.material.resolution.set(visualizerContainer.clientWidth, visualizerContainer.clientHeight);
+        }
     }
 
     // --- Animation Loop ---
     function animate() {
         requestAnimationFrame(animate);
 
-        // Always rotate slowly
-        if (particleSystem) {
-            particleSystem.rotation.y += 0.0005;
-            particleSystem.rotation.x += 0.0002;
+        if (web) {
+            web.rotation.y += 0.001;
+            web.rotation.x += 0.0005;
         }
 
         if (isPlaying && analyser) {
             analyser.getByteFrequencyData(dataArray);
-            updateVisualizerWeb(dataArray);
+            updateVisualizer(dataArray);
         }
         
         renderer.render(scene, camera);
     }
 
-    function updateVisualizerWeb(data) {
-        const positions = particleSystem.geometry.attributes.position.array;
-        const vertexCount = positions.length / 3;
-
+    function updateVisualizer(data) {
+        // Create a new array for the updated vertex positions
+        const newPositions = new Float32Array(originalPositions.length);
+        
         const bassAvg = data.slice(0, 32).reduce((a, b) => a + b, 0) / 32;
         const midAvg = data.slice(32, 128).reduce((a, b) => a + b, 0) / 96;
-        const trebleAvg = data.slice(128).reduce((a, b) => a + b, 0) / (data.length - 128);
 
-        for (let i = 0; i < vertexCount; i++) {
+        for (let i = 0; i < originalPositions.length / 3; i++) {
             const i3 = i * 3;
             const originalVector = new THREE.Vector3(originalPositions[i3], originalPositions[i3+1], originalPositions[i3+2]);
             const direction = originalVector.clone().normalize();
             
-            // Apply displacement based on frequency band
-            let displacement = 0;
-            if (Math.abs(originalVector.y) > 40) { // Affect top/bottom with bass
-                displacement = (bassAvg / 255) * 30;
-            } else if (Math.abs(originalVector.x) > 40) { // Affect sides with treble
-                displacement = (trebleAvg / 255) * 25;
-            } else { // Affect middle with mids
-                displacement = (midAvg / 255) * 20;
-            }
+            const displacement = (bassAvg / 255) * 20 + (midAvg / 255) * 10;
 
             const newPos = originalVector.clone().add(direction.multiplyScalar(displacement));
-            positions[i3] = newPos.x;
-            positions[i3 + 1] = newPos.y;
-            positions[i3 + 2] = newPos.z;
+            newPositions[i3] = newPos.x;
+            newPositions[i3 + 1] = newPos.y;
+            newPositions[i3 + 2] = newPos.z;
         }
-        particleSystem.geometry.attributes.position.needsUpdate = true;
+
+        // Update the geometry and color of the lines
+        web.geometry.setPositions(newPositions);
         
-        // Color changes based on audio intensity
-        // Hue: 0.0 (Red) -> 0.16 (Yellow) -> 0.6 (Blue)
         const bassIntensity = bassAvg / 255;
-        const trebleIntensity = trebleAvg / 255;
-        
-        // Shift hue between red (0.0) and blue (0.6) based on bass
-        const hue = 0.6 - (bassIntensity * 0.6); 
-        particleSystem.material.color.setHSL(hue, 1.0, 0.6);
-        
-        // Make points larger with treble
-        particleSystem.material.size = 0.5 + trebleIntensity * 1.5;
+        const hue = 0.6 - (bassIntensity * 0.6); // Blue -> Red
+        web.material.color.setHSL(hue, 0.8, 0.5);
     }
 
     // --- Playlist & Playback Logic ---
@@ -203,6 +232,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         currentTrackIndex = index;
         const track = playlist[index];
+        
+        currentTrackNameDisplay.textContent = track.name;
         
         audioElement.src = track.url;
         audioElement.play().catch(e => {
@@ -281,12 +312,21 @@ document.addEventListener('DOMContentLoaded', () => {
         seekBar.disabled = !hasTracks;
         
         playPauseButton.innerHTML = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
+        if (!hasTracks) {
+            currentTrackNameDisplay.textContent = 'No song selected';
+        }
     }
 
     function updateSeekBar() {
-        if (isSeeking || !audioElement || !isFinite(audioElement.duration)) return;
-        const progress = (audioElement.currentTime / audioElement.duration) * 100;
-        seekBar.value = isNaN(progress) ? 0 : progress;
+        if (!audioElement || !isFinite(audioElement.duration)) return;
+        
+        if (!isSeeking) {
+            const progress = (audioElement.currentTime / audioElement.duration) * 100;
+            seekBar.value = isNaN(progress) ? 0 : progress;
+        }
+        
+        seekBar.style.setProperty('--seek-before-width', `${seekBar.value}%`);
+
         currentTimeDisplay.textContent = formatTime(audioElement.currentTime);
         totalDurationDisplay.textContent = formatTime(audioElement.duration);
     }

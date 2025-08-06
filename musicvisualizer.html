@@ -3,67 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Music Visualizer</title>
+    <title>Geometric Music Visualizer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* A basic style block to ensure the nav and scrollbar look good */
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        .main-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 2rem;
-            background-color: #1f2937; /* bg-gray-800 */
-            color: white;
-        }
-        .main-nav .logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-        }
-        .main-nav .nav-links a {
-            color: #d1d5db; /* text-gray-300 */
-            margin-left: 1.5rem;
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-        .main-nav .nav-links a:hover {
-            color: white;
-        }
-        .main-nav .nav-links a.active {
-            color: white;
-            font-weight: 600;
-        }
-        .control-btn {
-            background-color: #374151; /* bg-gray-700 */
-            color: white;
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .control-btn:hover {
-            background-color: #4b5563; /* bg-gray-600 */
-        }
-        .control-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+        body { font-family: 'Inter', sans-serif; }
+        .main-nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background-color: #1f2937; color: white; }
+        .main-nav .logo { font-size: 1.5rem; font-weight: 700; }
+        .main-nav .nav-links a { color: #d1d5db; margin-left: 1.5rem; text-decoration: none; transition: color 0.2s; }
+        .main-nav .nav-links a:hover { color: white; }
+        .main-nav .nav-links a.active { color: white; font-weight: 600; }
+        .control-btn { background-color: #374151; color: white; padding: 0.75rem 1rem; border-radius: 0.5rem; border: none; cursor: pointer; transition: background-color 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; }
+        .control-btn:hover:not(:disabled) { background-color: #4b5563; }
+        .control-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        #visualizer-container {
+            background: radial-gradient(circle, #1f2937 0%, #111827 100%);
         }
     </style>
 </head>
@@ -74,7 +33,7 @@
 
     <!-- Shared navigation bar -->
     <nav class="main-nav">
-        <div class="logo"><i class="fas fa-headphones-alt"></i> Audio Hub</div>
+        <div class="logo"><i class="fas fa-headphones-alt text-indigo-400"></i> Audio Hub</div>
         <div class="nav-links">
             <a href="index.html">Home</a>
             <a href="musicvisualizer.html" class="active">Visualizer</a>
@@ -84,18 +43,37 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="flex-grow flex overflow-hidden">
-        <div id="main-content-area" class="flex-grow relative overflow-hidden">
-            <div id="ui-container" class="absolute bottom-0 left-0 right-0 w-full z-10 bg-gradient-to-t from-gray-900/90 to-transparent p-4 md:p-6">
-                <!-- Controls -->
-                <div class="flex items-center justify-center gap-2 md:gap-4 mb-4">
-                    <label for="audioFileInput" class="control-btn bg-blue-600 hover:bg-blue-700">
-                        <i class="fas fa-plus"></i> <span class="hidden md:inline">Add MP3(s)</span>
+    <main class="flex-grow flex flex-col md:flex-row overflow-hidden">
+        <!-- Visualizer Viewport -->
+        <div id="visualizer-container" class="flex-grow relative flex items-center justify-center bg-gray-900 overflow-hidden">
+            <canvas id="visualizer-canvas" class="absolute top-0 left-0"></canvas>
+        </div>
+
+        <!-- Right Sidebar: Playlist & Controls -->
+        <aside class="w-full md:w-[350px] flex-shrink-0 bg-gray-800 p-4 border-l border-gray-700 flex flex-col">
+            <!-- Playlist -->
+            <div class="flex-grow flex flex-col min-h-0">
+                 <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-700">
+                    <h3 class="text-xl font-semibold">Playlist</h3>
+                    <button id="clear-playlist-button" class="control-btn text-sm py-1 px-3 bg-red-600 hover:bg-red-700 disabled:opacity-50" disabled>
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                </div>
+                <div id="playlist-items-container" class="flex-grow overflow-y-auto no-scrollbar">
+                    <p id="empty-playlist-message" class="text-gray-400 text-center mt-4">Add some MP3s to get started.</p>
+                </div>
+            </div>
+
+            <!-- Controls Area -->
+            <div class="flex-shrink-0 pt-4 border-t border-gray-700">
+                 <div class="flex items-center justify-center gap-2 md:gap-4 mb-4">
+                    <label for="audioFileInput" class="control-btn bg-blue-600 hover:bg-blue-700" title="Add MP3(s)">
+                        <i class="fas fa-plus"></i>
                     </label>
                     <input type="file" id="audioFileInput" accept=".mp3" class="hidden" multiple>
                     
                     <button id="skipBackButton" class="control-btn" title="Previous Track" disabled><i class="fas fa-backward-step"></i></button>
-                    <button id="playPauseButton" class="control-btn w-24 bg-green-600 hover:bg-green-700" disabled><i class="fas fa-play"></i> Play</button>
+                    <button id="playPauseButton" class="control-btn w-20 bg-green-600 hover:bg-green-700" disabled><i class="fas fa-play"></i></button>
                     <button id="skipForwardButton" class="control-btn" title="Next Track" disabled><i class="fas fa-forward-step"></i></button>
                     
                     <div class="flex items-center gap-2 text-white">
@@ -110,28 +88,9 @@
                     <span id="totalDuration" class="w-12 text-center text-sm text-white">0:00</span>
                 </div>
             </div>
-            <canvas id="visualizer-canvas" class="block absolute top-0 left-0 w-full h-full z-0"></canvas>
-        </div>
-
-        <!-- Playlist Sidebar -->
-        <aside class="w-[250px] md:w-[300px] flex-shrink-0 bg-gray-800 p-4 border-l border-gray-700 flex flex-col">
-            <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-700">
-                <h3 class="text-xl font-semibold">Playlist</h3>
-                <button id="clear-playlist-button" class="py-1 px-3 text-sm rounded-md font-medium cursor-pointer transition-all inline-flex items-center justify-center gap-2 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50" disabled>
-                    <i class="fas fa-trash"></i> Clear
-                </button>
-            </div>
-            <div id="playlist-items-container" class="flex-grow overflow-y-auto no-scrollbar">
-                <p id="empty-playlist-message" class="text-gray-400 text-center mt-4">Add some MP3s to get started.</p>
-            </div>
         </aside>
     </main>
 
-    <!--
-      FIX: Switched to using an import map and ES modules.
-      This is the modern, recommended way to use Three.js and avoids the errors
-      caused by legacy script loading.
-    -->
     <script type="importmap">
     {
         "imports": {
@@ -140,8 +99,6 @@
         }
     }
     </script>
-    
-    <!-- Your application code, now loaded as a module -->
     <script type="module" src="script.js"></script>
 </body>
 </html>

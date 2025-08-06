@@ -13,7 +13,7 @@
     <style>
         .now-playing-indicator { display: none; }
         .playlist-item.playing .now-playing-indicator { display: flex; align-items: flex-end; gap: 2px; height: 16px; }
-        .now-playing-indicator .bar { width: 3px; height: 100%; background-color: #34d399; border-radius: 2px; animation: bounce 1.2s ease-in-out infinite; }
+        .now-playing-indicator .bar { width: 3px; height: 100%; background-color: var(--accent-tertiary); border-radius: 2px; animation: bounce 1.2s ease-in-out infinite; }
         .now-playing-indicator .bar:nth-child(2) { animation-delay: -1.0s; }
         .now-playing-indicator .bar:nth-child(3) { animation-delay: -0.8s; }
         .now-playing-indicator .bar:nth-child(4) { animation-delay: -0.6s; }
@@ -22,20 +22,13 @@
             0%, 100% { transform: scaleY(0.2); }
             50% { transform: scaleY(1.0); }
         }
-
-        /* p5.js canvas container */
-        #p5-canvas-container {
-            position: fixed; /* Use fixed to ensure it covers the whole screen */
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0; /* Behind everything */
+        
+        /* Style for the filled-in progress on the seek bar */
+        #seekBar {
+            background: linear-gradient(to right, var(--accent-primary) 0%, var(--accent-primary) var(--seek-before-width, 0%), var(--bg-tertiary) var(--seek-before-width, 0%), var(--bg-tertiary) 100%);
         }
-        /* Ensure main content is on top */
-        .content-layer {
-            position: relative;
-            z-index: 1;
+        #seekBar::-webkit-slider-thumb {
+            background: var(--accent-tertiary); /* Yellow thumb */
         }
     </style>
 </head>
@@ -43,13 +36,13 @@
     
     <div id="p5-canvas-container"></div>
 
-    <div class="content-layer flex flex-col h-screen">
+    <div class="relative z-10 flex flex-col h-screen">
         <!-- Notification Bar -->
         <div id="message-bar" class="fixed top-0 left-0 w-full bg-red-600 text-white text-center p-3 z-50 font-medium transition-transform duration-300 -translate-y-full"></div>
 
         <!-- Shared navigation bar -->
-        <nav class="main-nav flex-shrink-0">
-            <div class="logo"><i class="fas fa-headphones-alt text-indigo-400"></i> Audio Hub</div>
+        <nav class="main-nav">
+            <div class="logo"><i class="fas fa-headphones-alt"></i> Audio Hub</div>
             <div class="nav-links">
                 <a href="index.html">Home</a>
                 <a href="musicvisualizer.html" class="active">Visualizer</a>
@@ -66,10 +59,10 @@
             </div>
 
             <!-- Right Sidebar: Playlist Only -->
-            <aside class="w-full md:w-[350px] flex-shrink-0 bg-gray-800/80 backdrop-blur-sm p-4 border-l border-gray-700 flex flex-col">
+            <aside class="w-full md:w-[350px] flex-shrink-0 bg-gray-900/60 backdrop-blur-sm p-4 border-l border-gray-700 flex flex-col">
                 <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-700">
                     <h3 class="text-xl font-semibold">Up Next</h3>
-                    <label for="audioFileInput" class="control-btn bg-blue-600 hover:bg-blue-700" title="Add MP3(s)">
+                    <label for="audioFileInput" class="control-btn accent-blue" title="Add MP3(s)">
                         <i class="fas fa-plus"></i>
                     </label>
                     <input type="file" id="audioFileInput" accept=".mp3" class="hidden" multiple>
@@ -81,22 +74,37 @@
         </div>
 
         <!-- Bottom Player Controls Bar -->
-        <footer class="flex-shrink-0 bg-gray-800/70 backdrop-blur-md border-t border-gray-700 p-4 flex flex-col items-center gap-2">
-            <div class="flex items-center justify-center gap-4">
-                <button id="skipBackButton" class="control-btn" title="Previous Track" disabled><i class="fas fa-backward-step"></i></button>
-                <button id="playPauseButton" class="control-btn play-pause-btn bg-green-600 hover:bg-green-700 text-2xl" disabled><i class="fas fa-play"></i></button>
-                <button id="skipForwardButton" class="control-btn" title="Next Track" disabled><i class="fas fa-forward-step"></i></button>
-            </div>
-            <div class="w-full max-w-2xl flex items-center gap-3">
+        <footer class="flex-shrink-0 bg-gray-900/70 backdrop-blur-md border-t border-gray-700 p-4 flex flex-col items-center gap-3">
+            <!-- Top row: Seek bar and time -->
+            <div class="w-full max-w-3xl flex items-center gap-3">
                 <span id="currentTime" class="w-12 text-center text-sm text-gray-400">0:00</span>
                 <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1" disabled class="flex-grow">
                 <span id="totalDuration" class="w-12 text-center text-sm text-gray-400">0:00</span>
+            </div>
+            <!-- Bottom row: Song name, controls, volume -->
+            <div class="w-full max-w-3xl flex items-center justify-between gap-4">
+                <!-- Song Name -->
+                <div class="w-1/3">
+                    <p id="currentTrackName" class="text-sm text-gray-300 truncate font-medium">No song selected</p>
+                </div>
+                <!-- Media Controls -->
+                <div class="flex items-center justify-center gap-4">
+                    <button id="skipBackButton" class="control-btn" title="Previous Track" disabled><i class="fas fa-backward-step"></i></button>
+                    <button id="playPauseButton" class="control-btn accent-red play-pause-btn text-2xl w-14 h-14 rounded-full" disabled><i class="fas fa-play"></i></button>
+                    <button id="skipForwardButton" class="control-btn" title="Next Track" disabled><i class="fas fa-forward-step"></i></button>
+                </div>
+                <!-- Volume Control -->
+                <div class="w-1/3 flex items-center justify-end gap-2">
+                    <i id="volumeIcon" class="fas fa-volume-up text-gray-400"></i>
+                    <input type="range" id="volumeSlider" min="0" max="100" value="50" class="w-24">
+                </div>
             </div>
         </footer>
     </div>
 
     <!-- JS Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <script src="p5-background.js"></script>
     <script type="importmap">
     {
         "imports": {
@@ -106,50 +114,5 @@
     }
     </script>
     <script type="module" src="script.js"></script>
-    <script>
-        // p5.js sketch for the background
-        let particles = [];
-        function setup() {
-            let canvas = createCanvas(windowWidth, windowHeight);
-            canvas.parent('p5-canvas-container');
-            for (let i = 0; i < 50; i++) { // Fewer particles for less distraction
-                particles.push(new Particle());
-            }
-        }
-        function draw() {
-            clear(); // Use clear() for a transparent background
-            for (let p of particles) {
-                p.createParticle();
-                p.moveParticle();
-                p.joinParticles(particles.slice(particles.indexOf(p)));
-            }
-        }
-        function windowResized() { resizeCanvas(windowWidth, windowHeight); }
-        class Particle {
-            constructor() {
-                this.x = random(0, width); this.y = random(0, height);
-                this.r = random(1, 3);
-                this.xSpeed = random(-0.5, 0.5); this.ySpeed = random(-0.5, 0.5);
-            }
-            createParticle() {
-                noStroke(); fill('rgba(79, 70, 229, 0.5)'); // Indigo color
-                circle(this.x, this.y, this.r);
-            }
-            moveParticle() {
-                if (this.x < 0 || this.x > width) this.xSpeed *= -1;
-                if (this.y < 0 || this.y > height) this.ySpeed *= -1;
-                this.x += this.xSpeed; this.y += this.ySpeed;
-            }
-            joinParticles(otherParticles) {
-                otherParticles.forEach(p => {
-                    let d = dist(this.x, this.y, p.x, p.y);
-                    if (d < 100) {
-                        stroke('rgba(79, 70, 229, 0.2)');
-                        line(this.x, this.y, p.x, p.y);
-                    }
-                });
-            }
-        }
-    </script>
 </body>
 </html>

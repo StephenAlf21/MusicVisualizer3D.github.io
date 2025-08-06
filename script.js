@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const playPauseButton = $('playPauseButton');
     const skipBackButton = $('skipBackButton');
     const skipForwardButton = $('skipForwardButton');
-    const volumeSlider = document.querySelector('#volumeSlider'); // May not exist in new UI, handle gracefully
+    // FIX: Removed the volumeSlider constant as the element no longer exists
     const seekBar = $('seekBar');
     const currentTimeDisplay = $('currentTime');
     const totalDurationDisplay = $('totalDuration');
@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             audioElement = new Audio();
+            audioElement.volume = 0.5; // Set a default volume
             
             analyser = audioContext.createAnalyser();
             analyser.fftSize = 512;
@@ -101,9 +102,9 @@ document.addEventListener('DOMContentLoaded', () => {
         playPauseButton.onclick = togglePlayPause;
         skipBackButton.onclick = () => loadTrack(currentTrackIndex - 1);
         skipForwardButton.onclick = () => loadTrack(currentTrackIndex + 1);
-        if (volumeSlider) {
-            volumeSlider.oninput = () => { if (audioElement) audioElement.volume = volumeSlider.value / 100; };
-        }
+        
+        // FIX: Removed event listener for the non-existent volume slider
+        
         seekBar.onmousedown = () => { isSeeking = true; };
         seekBar.onmouseup = () => { isSeeking = false; seekToPosition(); };
         seekBar.addEventListener('touchstart', () => { isSeeking = true; });
@@ -180,7 +181,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const track = playlist[index];
         
         audioElement.src = track.url;
-        if(volumeSlider) audioElement.volume = volumeSlider.value / 100;
         audioElement.play().catch(e => {
             console.error("Playback error:", e);
             showToast("Error playing audio file.", "error");
@@ -239,7 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 itemEl.innerHTML = itemHTML;
                 itemEl.querySelector('.playlist-item').addEventListener('click', () => loadTrack(index));
 
-                // Add 'playing' class if the track is the one currently active
                 if (isCurrentlyPlaying) {
                     itemEl.querySelector('.playlist-item').classList.add('playing');
                 }

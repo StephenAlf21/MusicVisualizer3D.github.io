@@ -54,14 +54,24 @@
                     <p class="text-gray-400">Upload an MP3 to generate timestamped lyrics and sing along!</p>
                 </div>
 
+                <!-- Player UI -->
                 <div id="player-ui" class="hidden w-full flex-grow flex flex-col">
                     <div id="lyricsOutput" class="mb-6 p-6 bg-black/50 border border-gray-700 rounded-lg flex-grow text-2xl leading-relaxed font-semibold overflow-y-auto" style="max-height: 40vh;"></div>
-                    <div class="flex-shrink-0 flex items-center gap-4">
-                        <button id="playPauseBtn" class="control-btn accent-red text-xl w-14 h-14 rounded-full" disabled><i class="fas fa-play"></i></button>
-                        <audio id="audio-player" class="hidden"></audio>
-                        <span id="currentTime" class="w-14 text-center text-sm text-gray-400">0:00</span>
-                        <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1" disabled class="flex-grow">
-                        <span id="totalDuration" class="w-14 text-center text-sm text-gray-400">0:00</span>
+                    <!-- Player Controls -->
+                    <div class="flex-shrink-0 flex items-center justify-between gap-4">
+                        <!-- Left side: Play/Pause, Seek -->
+                        <div class="flex items-center gap-4 flex-grow">
+                            <button id="playPauseBtn" class="control-btn accent-red text-xl w-14 h-14 rounded-full" disabled><i class="fas fa-play"></i></button>
+                            <audio id="audio-player" class="hidden"></audio>
+                            <span id="currentTime" class="w-14 text-center text-sm text-gray-400">0:00</span>
+                            <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1" disabled class="flex-grow">
+                            <span id="totalDuration" class="w-14 text-center text-sm text-gray-400">0:00</span>
+                        </div>
+                        <!-- Right side: Volume Control -->
+                        <div class="flex items-center justify-end gap-2 w-32">
+                            <i id="volumeIcon" class="fas fa-volume-up text-gray-400"></i>
+                            <input type="range" id="volumeSlider" min="0" max="100" value="100" class="w-24">
+                        </div>
                     </div>
                     <div class="mt-6 flex justify-center gap-4">
                         <button id="downloadBtn" class="control-btn accent-blue"><i class="fas fa-download"></i> Download .txt</button>
@@ -69,6 +79,7 @@
                     </div>
                 </div>
 
+                <!-- Upload UI -->
                 <div id="upload-ui" class="text-center">
                      <div class="mb-6">
                         <label for="mp3Input" class="control-btn accent-red text-lg px-6 py-3 cursor-pointer">
@@ -77,10 +88,11 @@
                         <input type="file" id="mp3Input" accept=".mp3" class="hidden">
                         <p id="fileName" class="text-sm text-gray-500 mt-2 h-5"></p>
                     </div>
-                    <div id="status" class="mt-6 text-blue-300 min-h-[24px]"></div>
+                    <div id="status" class="mt-4 text-blue-300 min-h-[24px]"></div>
                     <div id="progress-bar-container" class="w-full rounded-full h-2.5 mt-2 hidden">
                         <div id="progress-bar" class="h-2.5 rounded-full" style="width: 0%"></div>
                     </div>
+                    <p id="model-info" class="text-xs text-gray-500 mt-4 h-4"></p>
                 </div>
             </div>
         </main>
@@ -89,8 +101,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
     <script src="p5-background.js"></script>
     <script type="module">
-        // This script remains largely the same, as it's for functionality, not style.
-        // The styling changes are handled by the new style.css and classes.
         let isSeeking = false;
         let transcribedText = '';
         let lastChunkTime = 0;
@@ -101,6 +111,7 @@
         const lyricsOutput = document.getElementById('lyricsOutput');
         const progressBarContainer = document.getElementById('progress-bar-container');
         const progressBar = document.getElementById('progress-bar');
+        const modelInfo = document.getElementById('model-info');
         
         const uploadUi = document.getElementById('upload-ui');
         const playerUi = document.getElementById('player-ui');
@@ -110,6 +121,8 @@
         const seekBar = document.getElementById('seekBar');
         const currentTimeEl = document.getElementById('currentTime');
         const totalDurationEl = document.getElementById('totalDuration');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeIcon = document.getElementById('volumeIcon');
         
         const downloadBtn = document.getElementById('downloadBtn');
         const restartBtn = document.getElementById('restartBtn');
@@ -150,10 +163,11 @@
                 const worker = new Worker('worker.js', { type: 'module' });
 
                 worker.onmessage = (event) => {
-                    const { status, message, text, chunks, progress } = event.data;
+                    const { status, message, text, chunks, progress, model } = event.data;
                     switch (status) {
                         case 'loading_model':
-                            statusDisplay.textContent = "Loading AI model (first load is slow)...";
+                            statusDisplay.textContent = "Loading AI model (this may be slow on first run)...";
+                            modelInfo.textContent = `Using Model: ${model}`;
                             break;
                         case 'model_progress':
                             progressBar.style.width = `${25 + progress.progress * 0.5}%`;
@@ -235,6 +249,7 @@
             mp3Input.disabled = false;
             fileNameDisplay.textContent = '';
             statusDisplay.textContent = '';
+            modelInfo.textContent = '';
             progressBarContainer.style.display = 'none';
         });
 
@@ -271,6 +286,20 @@
             audioPlayer.currentTime = (seekBar.value / 100) * audioPlayer.duration;
         });
 
+        function handleVolumeChange() {
+            audioPlayer.volume = volumeSlider.value / 100;
+            const volume = volumeSlider.value;
+            if (volume == 0) {
+                volumeIcon.className = 'fas fa-volume-mute text-gray-400';
+            } else if (volume < 50) {
+                volumeIcon.className = 'fas fa-volume-down text-gray-400';
+            } else {
+                volumeIcon.className = 'fas fa-volume-up text-gray-400';
+            }
+        }
+        volumeSlider.addEventListener('input', handleVolumeChange);
+        handleVolumeChange(); // Set initial icon
+
         function highlightCurrentWord() {
             const currentTime = audioPlayer.currentTime;
             const words = lyricsOutput.querySelectorAll('.word');
@@ -285,7 +314,6 @@
                     word.classList.remove('active');
                 }
             });
-            // Auto-scroll logic
             if(activeWord) {
                 const container = lyricsOutput;
                 const scroll = activeWord.offsetTop - container.offsetTop - (container.clientHeight / 2) + (activeWord.clientHeight / 2);

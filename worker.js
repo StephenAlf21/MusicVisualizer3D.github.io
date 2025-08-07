@@ -21,8 +21,13 @@ self.onmessage = async (event) => {
     try {
         const inputData = event.data.audio;
 
-        // 1. Load the AI model, passing a progress callback
-        self.postMessage({ status: 'loading_model' });
+        // 1. Post the model name *before* loading it
+        self.postMessage({
+            status: 'loading_model',
+            model: MyTranscriptionPipeline.model, // <-- FIX: Include the model string
+        });
+
+        // 2. Load the AI model, passing a progress callback
         const transcriber = await MyTranscriptionPipeline.getInstance((progress) => {
             // FIX: Sanitize the model loading progress object before sending
             self.postMessage({ 
@@ -35,7 +40,7 @@ self.onmessage = async (event) => {
             });
         });
 
-        // 2. Perform the transcription
+        // 3. Perform the transcription
         self.postMessage({ status: 'transcribing' });
         
         const progress_callback = (progress) => {
@@ -55,7 +60,7 @@ self.onmessage = async (event) => {
             callback_function: progress_callback
         });
 
-        // 3. Sanitize the final result before sending
+        // 4. Sanitize the final result before sending
         const sanitizedChunks = result.chunks.map(chunk => ({
             text: chunk.text,
             timestamp: chunk.timestamp

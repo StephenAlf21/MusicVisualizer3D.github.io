@@ -268,9 +268,9 @@
         let transcribedText = '';
         let lastChunkTime = 0;
         let worker = null;
-        let currentWordIndex = 0; // FIX: For efficient word highlighting
-        let uploadedName = ''; // FIX: Store original filename for download
-        let audioObjectUrl = null; // FIX: Store object URL to revoke later
+        let currentWordIndex = 0;
+        let uploadedName = '';
+        let audioObjectUrl = null;
 
         // DOM Elements
         const modelSelect = document.getElementById('modelSelect');
@@ -602,7 +602,7 @@
                 statusDisplay.classList.remove('text-red-400');
             }
             if (progress !== undefined) {
-                updateProgressBar(percent);
+                updateProgressBar(progress);
             }
         }
 

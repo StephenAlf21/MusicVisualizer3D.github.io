@@ -83,7 +83,8 @@ nav.main-nav .nav-links {
     display: flex;
     gap: 0.5rem;
 }
-nav.main-nav .nav-links a {
+/* This rule now excludes the .projects-btn, fixing the color issue */
+nav.main-nav .nav-links a:not(.projects-btn) {
     color: var(--text-secondary);
     text-decoration: none;
     padding: 0.5rem 1rem;
@@ -91,7 +92,7 @@ nav.main-nav .nav-links a {
     font-weight: 500;
     transition: background-color 0.2s, color 0.2s;
 }
-nav.main-nav .nav-links a:hover {
+nav.main-nav .nav-links a:not(.projects-btn):hover {
     background-color: var(--bg-tertiary);
     color: var(--text-primary);
 }
@@ -172,3 +173,4 @@ input[type="range"]:hover::-webkit-slider-thumb {
 .translate-y-full {
     transform: translateY(-100%);
 }
+

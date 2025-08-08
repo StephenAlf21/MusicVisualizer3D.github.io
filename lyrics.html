@@ -18,7 +18,66 @@
 
     <link rel="stylesheet" href="style.css">
     <style>
-        .word { transition: color 0.2s, opacity 0.2s, transform 0.2s; opacity: 0.5; display: inline-block; }
+        /* Basic theme variables */
+        :root {
+            --bg-primary: #111827; /* gray-900 */
+            --bg-secondary: #1f2937; /* gray-800 */
+            --bg-tertiary: #374151; /* gray-700 */
+            --text-primary: #f9fafb; /* gray-50 */
+            --text-secondary: #d1d5db; /* gray-300 */
+            --accent-primary: #ef4444; /* red-500 */
+            --accent-secondary: #3b82f6; /* blue-500 */
+            --accent-tertiary: #eab308; /* yellow-500 */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        /* p5.js canvas container */
+        #p5-canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0; /* Behind content */
+        }
+        /* Custom styles for UI elements */
+        .main-nav {
+            background-color: rgba(17, 24, 39, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--bg-tertiary);
+        }
+        .logo { font-size: 1.5rem; font-weight: 700; }
+        .nav-links a { margin-left: 1.5rem; transition: color 0.3s; }
+        .nav-links a:hover, .nav-links a.active { color: var(--accent-primary); }
+
+        .control-btn {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--bg-tertiary);
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        .control-btn:hover { background-color: var(--bg-tertiary); transform: translateY(-2px); }
+        .control-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .control-btn.accent-red { background-color: var(--accent-primary); border-color: var(--accent-primary); }
+        .control-btn.accent-red:hover { background-color: #dc2626; } /* red-600 */
+        .control-btn.accent-blue { background-color: var(--accent-secondary); border-color: var(--accent-secondary); }
+        .control-btn.accent-blue:hover { background-color: #2563eb; } /* blue-600 */
+
+        /* Word highlighting and lyrics container */
+        .word { 
+            transition: color 0.2s, opacity 0.2s, transform 0.2s; 
+            opacity: 0.5; 
+            display: inline-block; 
+        }
         .word.active { 
             color: var(--accent-tertiary); /* Yellow */
             opacity: 1; 
@@ -26,10 +85,50 @@
             transform: scale(1.05);
         }
         #progress-bar-container { background-color: var(--bg-tertiary); }
-        #progress-bar { transition: width 0.4s ease; background-color: var(--accent-secondary); }
+        #progress-bar { 
+            transition: width 0.4s ease; 
+            background-color: var(--accent-secondary); 
+        }
+        /* Custom seek and volume sliders */
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type=range]:hover { opacity: 1; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--accent-primary);
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: var(--accent-primary);
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        /* Modal styles */
+        #modelInfoModal .modal-content {
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
     </style>
 </head>
-<body class="flex flex-col h-screen bg-gray-900 text-white">
+<body class="flex flex-col h-screen">
 
     <div id="p5-canvas-container"></div>
 
@@ -61,16 +160,16 @@
                     <div class="flex-shrink-0 flex items-center justify-between gap-4">
                         <!-- Left side: Play/Pause, Seek -->
                         <div class="flex items-center gap-4 flex-grow">
-                            <button id="playPauseBtn" class="control-btn accent-red text-xl w-14 h-14 rounded-full" disabled><i class="fas fa-play"></i></button>
+                            <button id="playPauseBtn" class="control-btn accent-red text-xl w-14 h-14 rounded-full" aria-label="Play/Pause" disabled><i class="fas fa-play"></i></button>
                             <audio id="audio-player" class="hidden"></audio>
-                            <span id="currentTime" class="w-14 text-center text-sm text-gray-400">0:00</span>
-                            <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1" disabled class="flex-grow">
-                            <span id="totalDuration" class="w-14 text-center text-sm text-gray-400">0:00</span>
+                            <span id="currentTime" class="w-14 text-center text-sm text-gray-400">00:00</span>
+                            <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1" disabled class="flex-grow" aria-label="Seek bar">
+                            <span id="totalDuration" class="w-14 text-center text-sm text-gray-400">00:00</span>
                         </div>
                         <!-- Right side: Volume Control -->
                         <div class="flex items-center justify-end gap-2 w-32">
                             <i id="volumeIcon" class="fas fa-volume-up text-gray-400"></i>
-                            <input type="range" id="volumeSlider" min="0" max="100" value="100" class="w-24">
+                            <input type="range" id="volumeSlider" min="0" max="1" value="1" step="0.01" class="w-24" aria-label="Volume control">
                         </div>
                     </div>
                     <div class="mt-6 flex justify-center gap-4">
@@ -81,6 +180,26 @@
 
                 <!-- Upload UI -->
                 <div id="upload-ui" class="text-center">
+                    <!-- Model and Device Controls -->
+                    <div class="flex items-center gap-4 justify-center mb-4">
+                      <label class="text-sm text-gray-300 flex items-center">
+                        Model
+                        <select id="modelSelect" class="ml-2 bg-gray-800 border border-gray-700 rounded p-1">
+                          <option value="Xenova/whisper-tiny.en" selected>tiny.en (EN-only)</option>
+                          <option value="Xenova/whisper-tiny">tiny (multilingual)</option>
+                          <option value="Xenova/whisper-base-int8">base-int8 (multilingual, recommended)</option>
+                          <option value="Xenova/whisper-base">base (FP32, larger)</option>
+                        </select>
+                        <button id="modelInfoBtn" class="ml-2 text-gray-400 hover:text-white focus:outline-none" aria-label="Show model information">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                      </label>
+
+                      <label class="text-sm text-gray-300">
+                        <input type="checkbox" id="webgpuToggle" class="mr-2 align-middle">
+                        Use WebGPU (if available)
+                      </label>
+                    </div>
                      <div class="mb-6">
                         <label for="mp3Input" class="control-btn accent-red text-lg px-6 py-3 cursor-pointer">
                             <i class="fas fa-upload"></i> Upload MP3
@@ -90,12 +209,56 @@
                     </div>
                     <div id="status" class="mt-4 text-blue-300 min-h-[24px]"></div>
                     <div id="progress-bar-container" class="w-full rounded-full h-2.5 mt-2 hidden">
-                        <div id="progress-bar" class="h-2.5 rounded-full" style="width: 0%"></div>
+                        <div id="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" class="h-2.5 rounded-full" style="width: 0%"></div>
                     </div>
                     <p id="model-info" class="text-xs text-gray-500 mt-4 h-4"></p>
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Model Info Modal -->
+    <div id="modelInfoModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="modal-content bg-gray-800 rounded-lg shadow-2xl p-6 max-w-3xl w-full mx-4">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-3">
+                <h2 class="text-2xl font-bold text-white">Model Information</h2>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-white text-3xl leading-none" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="space-y-4 text-gray-300 max-h-[70vh] overflow-y-auto">
+                <!-- Tiny EN -->
+                <div class="p-4 bg-gray-900/50 rounded-lg">
+                    <h3 class="font-bold text-lg text-red-400">Xenova/whisper-tiny.en</h3>
+                    <p><strong class="text-gray-100">Size:</strong> ~77 MB</p>
+                    <p><strong class="text-gray-100">Hardware:</strong> Low requirement. Runs efficiently on standard CPUs.</p>
+                    <p><strong class="text-gray-100">Ideal Audio Length:</strong> Up to 5-7 minutes. Very long files may still be slow.</p>
+                    <p><strong class="text-gray-100">Best Language Support:</strong> English only.</p>
+                </div>
+                <!-- Tiny -->
+                <div class="p-4 bg-gray-900/50 rounded-lg">
+                    <h3 class="font-bold text-lg text-blue-400">Xenova/whisper-tiny</h3>
+                    <p><strong class="text-gray-100">Size:</strong> ~77 MB</p>
+                    <p><strong class="text-gray-100">Hardware:</strong> Low requirement. Great for CPUs.</p>
+                    <p><strong class="text-gray-100">Ideal Audio Length:</strong> Up to 5-7 minutes. Good for longer multilingual clips.</p>
+                    <p><strong class="text-gray-100">Best Language Support:</strong> English, Spanish, German, Italian, French, Portuguese, Dutch.</p>
+                </div>
+                <!-- Base INT8 -->
+                <div class="p-4 bg-gray-900/50 rounded-lg">
+                    <h3 class="font-bold text-lg text-yellow-400">Xenova/whisper-base-int8 (Recommended)</h3>
+                    <p><strong class="text-gray-100">Size:</strong> ~74 MB</p>
+                    <p><strong class="text-gray-100">Hardware:</strong> Medium requirement. Optimized for fast CPU performance.</p>
+                    <p><strong class="text-gray-100">Ideal Audio Length:</strong> Best for typical songs (3-5 minutes). Longer files will be noticeably slower on CPU.</p>
+                    <p><strong class="text-gray-100">Best Language Support:</strong> Excellent for English, Spanish, German, French, Italian, Japanese, Dutch, Polish, Portuguese. Good support for many others.</p>
+                </div>
+                <!-- Base -->
+                <div class="p-4 bg-gray-900/50 rounded-lg">
+                    <h3 class="font-bold text-lg text-purple-400">Xenova/whisper-base</h3>
+                    <p><strong class="text-gray-100">Size:</strong> ~148 MB</p>
+                    <p><strong class="text-gray-100">Hardware:</strong> High requirement. Benefits greatly from WebGPU.</p>
+                     <p><strong class="text-gray-100">Ideal Audio Length:</strong> Best for shorter clips (under 3 minutes) on CPU. Can handle longer songs (3-5+ minutes) with WebGPU.</p>
+                    <p><strong class="text-gray-100">Best Language Support:</strong> Same as `base-int8` but with potentially higher accuracy. Excellent for English, Spanish, German, French, etc.</p>
+                </div>
+            </div>
+        </div>
     </div>
   
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
@@ -104,7 +267,17 @@
         let isSeeking = false;
         let transcribedText = '';
         let lastChunkTime = 0;
+        let worker = null;
+        let currentWordIndex = 0; // FIX: For efficient word highlighting
+        let uploadedName = ''; // FIX: Store original filename for download
+        let audioObjectUrl = null; // FIX: Store object URL to revoke later
 
+        // DOM Elements
+        const modelSelect = document.getElementById('modelSelect');
+        const webgpuToggle = document.getElementById('webgpuToggle');
+        const modelInfoBtn = document.getElementById('modelInfoBtn');
+        const modelInfoModal = document.getElementById('modelInfoModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
         const mp3Input = document.getElementById('mp3Input');
         const fileNameDisplay = document.getElementById('fileName');
         const statusDisplay = document.getElementById('status');
@@ -127,32 +300,49 @@
         const downloadBtn = document.getElementById('downloadBtn');
         const restartBtn = document.getElementById('restartBtn');
 
+        // --- Core Logic ---
+
+        webgpuToggle.addEventListener('change', () => {
+          if (webgpuToggle.checked && !navigator.gpu) {
+            statusDisplay.textContent = 'WebGPU not supported in this browser; falling back to CPU.';
+          }
+        });
+
         mp3Input.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
-            fileNameDisplay.textContent = `Selected: ${file.name}`;
+            uploadedName = file.name; 
+            fileNameDisplay.textContent = `Selected: ${uploadedName}`;
             statusDisplay.textContent = 'Starting process...';
             mp3Input.disabled = true;
             progressBarContainer.style.display = 'block';
-            progressBar.style.width = '0%';
+            updateProgressBar(0);
+
+            if (audioObjectUrl) {
+                URL.revokeObjectURL(audioObjectUrl);
+            }
+            audioObjectUrl = URL.createObjectURL(file);
+            audioPlayer.src = audioObjectUrl;
 
             try {
                 const buffer = await file.arrayBuffer();
-                audioPlayer.src = URL.createObjectURL(file);
-
-                statusDisplay.textContent = 'Decoding audio...';
-                progressBar.style.width = '10%';
+                updateStatus('Decoding audio...', 10);
+                
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
                 const audioBuffer = await audioCtx.decodeAudioData(buffer.slice(0));
-                progressBar.style.width = '25%';
+                audioCtx.close().catch(console.error);
+                
+                updateStatus('Preparing audio data...', 25);
 
                 let inputData;
                 if (audioBuffer.numberOfChannels > 1) {
                     const mono = new Float32Array(audioBuffer.length);
                     for (let i = 0; i < audioBuffer.length; i++) {
                         let sum = 0;
-                        for (let c = 0; c < audioBuffer.numberOfChannels; c++) sum += audioBuffer.getChannelData(c)[i];
+                        for (let c = 0; c < audioBuffer.numberOfChannels; c++) {
+                            sum += audioBuffer.getChannelData(c)[i];
+                        }
                         mono[i] = sum / audioBuffer.numberOfChannels;
                     }
                     inputData = mono;
@@ -160,64 +350,83 @@
                     inputData = audioBuffer.getChannelData(0);
                 }
 
-                const worker = new Worker('worker.js', { type: 'module' });
+                worker = new Worker('worker.js', { type: 'module' });
+                setupWorkerListener(worker);
 
-                worker.onmessage = (event) => {
-                    const { status, message, text, chunks, progress, model } = event.data;
-                    switch (status) {
-                        case 'loading_model':
-                            statusDisplay.textContent = "Loading AI model (this may be slow on first run)...";
-                            modelInfo.textContent = `Using Model: ${model}`;
-                            break;
-                        case 'model_progress':
-                            progressBar.style.width = `${25 + progress.progress * 0.5}%`;
-                            break;
-                        case 'transcribing':
-                            statusDisplay.textContent = "Transcribing audio...";
-                            progressBar.style.width = '75%';
-                            lastChunkTime = Date.now();
-                            break;
-                        case 'transcribe_progress':
-                            const chunkProgress = progress.processed_chunks / progress.total_chunks;
-                            progressBar.style.width = `${75 + chunkProgress * 25}%`;
-                            
-                            const timeElapsed = Date.now() - lastChunkTime;
-                            const timePerChunk = timeElapsed / progress.processed_chunks;
-                            const remainingChunks = progress.total_chunks - progress.processed_chunks;
-                            const estimatedRemaining = Math.round((remainingChunks * timePerChunk) / 1000);
-                            
-                            statusDisplay.textContent = `Transcribing... (Chunk ${progress.processed_chunks}/${progress.total_chunks}) - ETA: ${estimatedRemaining}s`;
-                            break;
-                        case 'complete':
-                            progressBar.style.width = '100%';
-                            transcribedText = text;
-                            setTimeout(() => {
-                                renderLyrics(chunks);
-                                uploadUi.style.display = 'none';
-                                playerUi.style.display = 'flex';
-                            }, 500);
-                            worker.terminate();
-                            break;
-                        case 'error':
-                            statusDisplay.textContent = `Error: ${message}`;
-                            mp3Input.disabled = false;
-                            progressBarContainer.style.display = 'none';
-                            worker.terminate();
-                            break;
-                    }
-                };
+                const wantWebGPU = webgpuToggle.checked && !!navigator.gpu;
+                const device = wantWebGPU ? 'webgpu' : 'auto';
+                
+                modelInfo.textContent = `Using Model: ${modelSelect.value} • Backend: ${device}`;
 
-                worker.postMessage({ audio: inputData });
+                worker.postMessage(
+                  { audio: inputData.buffer, model: modelSelect.value, device },
+                  [inputData.buffer]
+                );
 
             } catch (err) {
-                statusDisplay.textContent = `Error: ${err.message}`;
                 console.error(err);
+                updateStatus(`Error: ${err.message}`, 0, true);
                 mp3Input.disabled = false;
             }
         });
 
+        function setupWorkerListener(workerInstance) {
+            let lastProgress = 0;
+            workerInstance.onmessage = (event) => {
+                const { status, message, text, chunks, progress, model, device } = event.data;
+                switch (status) {
+                    case 'loading_model':
+                        updateStatus("Loading AI model (this may be slow on first run)...");
+                        modelInfo.textContent = `Using Model: ${model} • Backend: ${device || 'auto'}`;
+                        break;
+                    case 'model_progress':
+                        const p = Number(progress?.progress ?? 0);
+                        const modelLoadProgress = 25 + p * 50;
+                        if (modelLoadProgress > lastProgress) {
+                            lastProgress = modelLoadProgress;
+                            updateProgressBar(modelLoadProgress);
+                        }
+                        break;
+                    case 'transcribing':
+                        updateStatus("Transcribing audio...", 75);
+                        lastChunkTime = Date.now();
+                        break;
+                    case 'transcribe_progress':
+                        const chunkProgress = progress.processed_chunks / progress.total_chunks;
+                        updateProgressBar(75 + chunkProgress * 25);
+                        
+                        if (progress.processed_chunks > 0) {
+                            const timeElapsed = Date.now() - lastChunkTime;
+                            const timePerChunk = timeElapsed / progress.processed_chunks;
+                            const remainingChunks = progress.total_chunks - progress.processed_chunks;
+                            const estimatedRemaining = Math.round((remainingChunks * timePerChunk) / 1000);
+                            statusDisplay.textContent = `Transcribing... (Chunk ${progress.processed_chunks}/${progress.total_chunks}) - ETA: ${estimatedRemaining}s`;
+                        }
+                        break;
+                    case 'complete':
+                        updateStatus('Transcription complete!', 100);
+                        transcribedText = text;
+                        setTimeout(() => {
+                            renderLyrics(chunks);
+                            uploadUi.style.display = 'none';
+                            playerUi.style.display = 'flex';
+                        }, 500);
+                        workerInstance.terminate();
+                        worker = null;
+                        break;
+                    case 'error':
+                        updateStatus(`Error: ${message}`, 0, true);
+                        mp3Input.disabled = false;
+                        workerInstance.terminate();
+                        worker = null;
+                        break;
+                }
+            };
+        }
+
         function renderLyrics(chunks) {
             lyricsOutput.innerHTML = '';
+            currentWordIndex = 0;
             if (chunks) {
                 chunks.forEach(chunk => {
                     const span = document.createElement('span');
@@ -230,39 +439,67 @@
             }
         }
 
+        // --- UI Event Listeners ---
+
         downloadBtn.addEventListener('click', () => {
+            const name = (uploadedName || 'lyrics').replace(/\.mp3$/i, '');
             const blob = new Blob([transcribedText], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${fileNameDisplay.textContent.replace('.mp3', '')}_lyrics.txt`;
+            a.download = `${name}_lyrics.txt`;
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
             URL.revokeObjectURL(url);
         });
 
         restartBtn.addEventListener('click', () => {
+            if (worker) {
+                worker.terminate();
+                worker = null;
+            }
             audioPlayer.pause();
+            if (audioObjectUrl) {
+                URL.revokeObjectURL(audioObjectUrl);
+                audioObjectUrl = null;
+            }
             audioPlayer.src = '';
+            
             playerUi.style.display = 'none';
             uploadUi.style.display = 'block';
+            
             mp3Input.value = '';
             mp3Input.disabled = false;
+            
             fileNameDisplay.textContent = '';
             statusDisplay.textContent = '';
             modelInfo.textContent = '';
+            lyricsOutput.innerHTML = '';
+            
             progressBarContainer.style.display = 'none';
+            updateProgressBar(0);
+            
+            transcribedText = '';
+            uploadedName = '';
+            currentWordIndex = 0;
         });
 
         audioPlayer.addEventListener('loadedmetadata', () => {
-            totalDurationEl.textContent = formatTime(audioPlayer.duration);
+            const duration = audioPlayer.duration;
+            totalDurationEl.textContent = formatTime(isNaN(duration) ? 0 : duration);
             playPauseBtn.disabled = false;
             seekBar.disabled = false;
         });
 
         audioPlayer.addEventListener('timeupdate', () => {
-            if (!isSeeking) seekBar.value = (audioPlayer.currentTime / audioPlayer.duration) * 100 || 0;
-            currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
-            highlightCurrentWord();
+            const currentTime = audioPlayer.currentTime;
+            const duration = audioPlayer.duration;
+            if (!isSeeking && duration > 0) {
+                seekBar.value = (currentTime / duration) * 100;
+            }
+            currentTimeEl.textContent = formatTime(currentTime);
+            highlightCurrentWord(currentTime);
         });
 
         audioPlayer.addEventListener('play', () => playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>');
@@ -279,54 +516,102 @@
 
         seekBar.addEventListener('input', () => {
             isSeeking = true;
-            currentTimeEl.textContent = formatTime((seekBar.value / 100) * audioPlayer.duration);
+            const duration = audioPlayer.duration;
+            if (duration > 0) {
+                currentTimeEl.textContent = formatTime((seekBar.value / 100) * duration);
+            }
         });
         seekBar.addEventListener('change', () => {
             isSeeking = false;
-            audioPlayer.currentTime = (seekBar.value / 100) * audioPlayer.duration;
+            const duration = audioPlayer.duration;
+            if (duration > 0) {
+                audioPlayer.currentTime = (seekBar.value / 100) * duration;
+            }
         });
 
-        function handleVolumeChange() {
-            audioPlayer.volume = volumeSlider.value / 100;
-            const volume = volumeSlider.value;
-            if (volume == 0) {
+        volumeSlider.addEventListener('input', () => {
+            const volume = Number(volumeSlider.value) || 0;
+            audioPlayer.volume = volume;
+            if (volume === 0) {
                 volumeIcon.className = 'fas fa-volume-mute text-gray-400';
-            } else if (volume < 50) {
+            } else if (volume < 0.5) {
                 volumeIcon.className = 'fas fa-volume-down text-gray-400';
             } else {
                 volumeIcon.className = 'fas fa-volume-up text-gray-400';
             }
-        }
-        volumeSlider.addEventListener('input', handleVolumeChange);
-        handleVolumeChange(); // Set initial icon
+        });
+        
+        // --- Modal Logic ---
+        modelInfoBtn.addEventListener('click', () => modelInfoModal.classList.remove('hidden'));
+        closeModalBtn.addEventListener('click', () => modelInfoModal.classList.add('hidden'));
+        modelInfoModal.addEventListener('click', (e) => {
+            if (e.target === modelInfoModal) {
+                modelInfoModal.classList.add('hidden');
+            }
+        });
 
-        function highlightCurrentWord() {
-            const currentTime = audioPlayer.currentTime;
-            const words = lyricsOutput.querySelectorAll('.word');
+        // --- Helper Functions ---
+
+        function highlightCurrentWord(currentTime) {
+            const words = lyricsOutput.children;
+            if (words.length === 0) return;
+
             let activeWord = null;
-            words.forEach(word => {
+            for (let i = currentWordIndex; i < words.length; i++) {
+                const word = words[i];
                 const start = parseFloat(word.dataset.start);
                 const end = parseFloat(word.dataset.end);
-                if (currentTime >= start && currentTime <= end) {
-                    word.classList.add('active');
-                    activeWord = word;
-                } else {
-                    word.classList.remove('active');
+
+                if (currentTime >= start && currentTime < end) {
+                    if (i !== currentWordIndex || !word.classList.contains('active')) {
+                        const oldWord = words[currentWordIndex];
+                        if (oldWord) oldWord.classList.remove('active');
+                        word.classList.add('active');
+                        activeWord = word;
+                        currentWordIndex = i;
+                    }
+                    break; 
+                } else if (currentTime < start) {
+                    const oldWord = words[currentWordIndex];
+                    if (oldWord) oldWord.classList.remove('active');
+                    break;
                 }
-            });
-            if(activeWord) {
+            }
+
+            if (activeWord) {
                 const container = lyricsOutput;
                 const scroll = activeWord.offsetTop - container.offsetTop - (container.clientHeight / 2) + (activeWord.clientHeight / 2);
-                container.scrollTop = scroll;
+                container.scrollTo({ top: scroll, behavior: 'smooth' });
             }
         }
 
         function formatTime(seconds) {
-            if (isNaN(seconds)) return '0:00';
+            if (isNaN(seconds) || seconds < 0) return '00:00';
             const minutes = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);
             return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
+
+        function updateStatus(message, progress, isError = false) {
+            statusDisplay.textContent = message;
+            if (isError) {
+                statusDisplay.classList.remove('text-blue-300');
+                statusDisplay.classList.add('text-red-400');
+            } else {
+                statusDisplay.classList.add('text-blue-300');
+                statusDisplay.classList.remove('text-red-400');
+            }
+            if (progress !== undefined) {
+                updateProgressBar(progress);
+            }
+        }
+
+        function updateProgressBar(percent) {
+            progressBar.style.width = `${percent}%`;
+            progressBar.setAttribute('aria-valuenow', percent);
+        }
+
+        volumeSlider.dispatchEvent(new Event('input'));
     </script>
 </body>
 </html>

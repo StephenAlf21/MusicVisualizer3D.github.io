@@ -230,6 +230,7 @@
                     <h3 class="font-bold text-lg text-red-400">Xenova/whisper-tiny.en</h3>
                     <p><strong class="text-gray-100">Size:</strong> ~77 MB</p>
                     <p><strong class="text-gray-100">Hardware:</strong> Low requirement. Runs efficiently on standard CPUs.</p>
+                    <p><strong class="text-gray-100">Ideal Audio Length:</strong> Up to 5-7 minutes. Very long files may still be slow.</p>
                     <p><strong class="text-gray-100">Best Language Support:</strong> English only.</p>
                 </div>
                 <!-- Tiny -->
@@ -237,20 +238,23 @@
                     <h3 class="font-bold text-lg text-blue-400">Xenova/whisper-tiny</h3>
                     <p><strong class="text-gray-100">Size:</strong> ~77 MB</p>
                     <p><strong class="text-gray-100">Hardware:</strong> Low requirement. Great for CPUs.</p>
+                    <p><strong class="text-gray-100">Ideal Audio Length:</strong> Up to 5-7 minutes. Good for longer multilingual clips.</p>
                     <p><strong class="text-gray-100">Best Language Support:</strong> English, Spanish, German, Italian, French, Portuguese, Dutch.</p>
                 </div>
                 <!-- Base INT8 -->
                 <div class="p-4 bg-gray-900/50 rounded-lg">
                     <h3 class="font-bold text-lg text-yellow-400">Xenova/whisper-base-int8 (Recommended)</h3>
                     <p><strong class="text-gray-100">Size:</strong> ~74 MB</p>
-                    <p><strong class="text-gray-100">Hardware:</strong> Medium requirement. Optimized for fast CPU performance with good accuracy.</p>
+                    <p><strong class="text-gray-100">Hardware:</strong> Medium requirement. Optimized for fast CPU performance.</p>
+                    <p><strong class="text-gray-100">Ideal Audio Length:</strong> Best for typical songs (3-5 minutes). Longer files will be noticeably slower on CPU.</p>
                     <p><strong class="text-gray-100">Best Language Support:</strong> Excellent for English, Spanish, German, French, Italian, Japanese, Dutch, Polish, Portuguese. Good support for many others.</p>
                 </div>
                 <!-- Base -->
                 <div class="p-4 bg-gray-900/50 rounded-lg">
                     <h3 class="font-bold text-lg text-purple-400">Xenova/whisper-base</h3>
                     <p><strong class="text-gray-100">Size:</strong> ~148 MB</p>
-                    <p><strong class="text-gray-100">Hardware:</strong> High requirement. Significantly slower on CPU; benefits greatly from WebGPU.</p>
+                    <p><strong class="text-gray-100">Hardware:</strong> High requirement. Benefits greatly from WebGPU.</p>
+                     <p><strong class="text-gray-100">Ideal Audio Length:</strong> Best for shorter clips (under 3 minutes) on CPU. Can handle longer songs (3-5+ minutes) with WebGPU.</p>
                     <p><strong class="text-gray-100">Best Language Support:</strong> Same as `base-int8` but with potentially higher accuracy. Excellent for English, Spanish, German, French, etc.</p>
                 </div>
             </div>
@@ -598,7 +602,7 @@
                 statusDisplay.classList.remove('text-red-400');
             }
             if (progress !== undefined) {
-                updateProgressBar(progress);
+                updateProgressBar(percent);
             }
         }
 

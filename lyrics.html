@@ -9,268 +9,324 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Favicon Links -->
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="manifest" href="site.webmanifest">
+
     <link rel="stylesheet" href="style.css">
     <style>
-        .word { transition: color 0.2s, opacity 0.2s; opacity: 0.6; }
-        .word.active { color: #f87171; opacity: 1; font-weight: 700; }
-        #progress-bar-container { background-color: #374151; }
-        #progress-bar { transition: width 0.4s ease; }
+        .word { transition: color 0.2s, opacity 0.2s, transform 0.2s; opacity: 0.5; display: inline-block; }
+        .word.active { 
+            color: var(--accent-tertiary); /* Yellow */
+            opacity: 1; 
+            font-weight: 700; 
+            transform: scale(1.05);
+        }
+        #progress-bar-container { background-color: var(--bg-tertiary); }
+        #progress-bar { transition: width 0.4s ease; background-color: var(--accent-secondary); }
     </style>
 </head>
 <body class="flex flex-col h-screen bg-gray-900 text-white">
 
-    <!-- Nav Bar -->
-    <nav class="main-nav flex-shrink-0">
-        <div class="logo"><i class="fas fa-headphones-alt text-indigo-400"></i> Audio Hub</div>
-        <div class="nav-links">
-            <a href="index.html">Home</a>
-            <a href="musicvisualizer.html">Visualizer</a>
-            <a href="editor.html">Editor</a>
-            <a href="lyrics.html" class="active">Lyrics Converter</a>
-        </div>
-    </nav>
+    <div id="p5-canvas-container"></div>
 
-    <!-- Main Content -->
-    <main class="flex-grow flex items-center justify-center p-4 md:p-8 overflow-y-auto">
-        <div class="w-full max-w-4xl bg-gray-800 rounded-lg shadow-2xl p-8 flex flex-col my-auto">
-            <div class="text-center mb-6">
-                <i class="fas fa-brain text-5xl text-indigo-400 mb-4"></i>
-                <h1 class="text-3xl font-bold mb-2">Karaoke Lyrics Generator</h1>
-                <p class="text-gray-400">Upload an MP3 to generate timestamped lyrics and sing along!</p>
+    <div class="relative z-10 flex flex-col h-screen">
+        <!-- Nav Bar -->
+        <nav class="main-nav">
+            <div class="logo"><i class="fas fa-headphones-alt"></i> Audio Hub</div>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="musicvisualizer.html">Visualizer</a>
+                <a href="editor.html">Editor</a>
+                <a href="lyrics.html" class="active">Lyrics Converter</a>
             </div>
+        </nav>
 
-            <div id="player-ui" class="hidden w-full flex-grow flex flex-col">
-                <div id="lyricsOutput" class="mb-6 p-6 bg-gray-900/70 border border-gray-700 rounded-lg flex-grow text-2xl leading-relaxed font-semibold"></div>
-                <div class="flex-shrink-0 flex items-center gap-4">
-                    <button id="playPauseBtn" class="control-btn bg-green-600 hover:bg-green-700 text-xl w-14 h-14 rounded-full" disabled><i class="fas fa-play"></i></button>
-                    <audio id="audio-player" class="hidden"></audio>
-                    <span id="currentTime" class="w-14 text-center text-sm text-gray-400">0:00</span>
-                    <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1" disabled class="flex-grow">
-                    <span id="totalDuration" class="w-14 text-center text-sm text-gray-400">0:00</span>
+        <!-- Main Content -->
+        <main class="flex-grow flex items-center justify-center p-4 md:p-8 overflow-y-auto">
+            <div class="w-full max-w-4xl bg-gray-900/70 backdrop-blur-sm rounded-lg shadow-2xl p-8 flex flex-col my-auto">
+                <div class="text-center mb-6">
+                    <i class="fas fa-brain text-5xl text-red-500 mb-4"></i>
+                    <h1 class="text-3xl font-bold mb-2">Karaoke Lyrics Generator</h1>
+                    <p class="text-gray-400">Upload an MP3 to generate timestamped lyrics and sing along!</p>
                 </div>
-                <div class="mt-6 flex justify-center gap-4">
-                    <button id="downloadBtn" class="control-btn bg-blue-600 hover:bg-blue-700"><i class="fas fa-download"></i> Download .txt</button>
-                    <button id="restartBtn" class="control-btn bg-gray-600 hover:bg-gray-500"><i class="fas fa-redo"></i> Start Over</button>
-                </div>
-            </div>
 
-            <div id="upload-ui" class="text-center">
-                 <div class="mb-6">
-                    <label for="mp3Input" class="control-btn bg-indigo-600 hover:bg-indigo-700 text-lg px-6 py-3 cursor-pointer">
-                        <i class="fas fa-upload"></i> Upload MP3
-                    </label>
-                    <input type="file" id="mp3Input" accept=".mp3" class="hidden">
-                    <p id="fileName" class="text-sm text-gray-500 mt-2 h-5"></p>
+                <!-- Player UI -->
+                <div id="player-ui" class="hidden w-full flex-grow flex flex-col">
+                    <div id="lyricsOutput" class="mb-6 p-6 bg-black/50 border border-gray-700 rounded-lg flex-grow text-2xl leading-relaxed font-semibold overflow-y-auto" style="max-height: 40vh;"></div>
+                    <!-- Player Controls -->
+                    <div class="flex-shrink-0 flex items-center justify-between gap-4">
+                        <!-- Left side: Play/Pause, Seek -->
+                        <div class="flex items-center gap-4 flex-grow">
+                            <button id="playPauseBtn" class="control-btn accent-red text-xl w-14 h-14 rounded-full" disabled><i class="fas fa-play"></i></button>
+                            <audio id="audio-player" class="hidden"></audio>
+                            <span id="currentTime" class="w-14 text-center text-sm text-gray-400">0:00</span>
+                            <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1" disabled class="flex-grow">
+                            <span id="totalDuration" class="w-14 text-center text-sm text-gray-400">0:00</span>
+                        </div>
+                        <!-- Right side: Volume Control -->
+                        <div class="flex items-center justify-end gap-2 w-32">
+                            <i id="volumeIcon" class="fas fa-volume-up text-gray-400"></i>
+                            <input type="range" id="volumeSlider" min="0" max="100" value="100" class="w-24">
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-center gap-4">
+                        <button id="downloadBtn" class="control-btn accent-blue"><i class="fas fa-download"></i> Download .txt</button>
+                        <button id="restartBtn" class="control-btn"><i class="fas fa-redo"></i> Start Over</button>
+                    </div>
                 </div>
-                <div id="status" class="mt-6 text-indigo-300 min-h-[24px]"></div>
-                <div id="progress-bar-container" class="w-full rounded-full h-2.5 mt-2 hidden">
-                    <div id="progress-bar" class="bg-indigo-500 h-2.5 rounded-full" style="width: 0%"></div>
+
+                <!-- Upload UI -->
+                <div id="upload-ui" class="text-center">
+                     <div class="mb-6">
+                        <label for="mp3Input" class="control-btn accent-red text-lg px-6 py-3 cursor-pointer">
+                            <i class="fas fa-upload"></i> Upload MP3
+                        </label>
+                        <input type="file" id="mp3Input" accept=".mp3" class="hidden">
+                        <p id="fileName" class="text-sm text-gray-500 mt-2 h-5"></p>
+                    </div>
+                    <div id="status" class="mt-4 text-blue-300 min-h-[24px]"></div>
+                    <div id="progress-bar-container" class="w-full rounded-full h-2.5 mt-2 hidden">
+                        <div id="progress-bar" class="h-2.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                    <p id="model-info" class="text-xs text-gray-500 mt-4 h-4"></p>
                 </div>
             </div>
-        </div>
-    </main>
+        </main>
+    </div>
   
-  <script type="module">
-    let isSeeking = false;
-    let transcribedText = '';
-    let lastChunkTime = 0;
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <script src="p5-background.js"></script>
+    <script type="module">
+        let isSeeking = false;
+        let transcribedText = '';
+        let lastChunkTime = 0;
 
-    const mp3Input = document.getElementById('mp3Input');
-    const fileNameDisplay = document.getElementById('fileName');
-    const statusDisplay = document.getElementById('status');
-    const lyricsOutput = document.getElementById('lyricsOutput');
-    const progressBarContainer = document.getElementById('progress-bar-container');
-    const progressBar = document.getElementById('progress-bar');
-    
-    const uploadUi = document.getElementById('upload-ui');
-    const playerUi = document.getElementById('player-ui');
-    
-    const audioPlayer = document.getElementById('audio-player');
-    const playPauseBtn = document.getElementById('playPauseBtn');
-    const seekBar = document.getElementById('seekBar');
-    const currentTimeEl = document.getElementById('currentTime');
-    const totalDurationEl = document.getElementById('totalDuration');
-    
-    const downloadBtn = document.getElementById('downloadBtn');
-    const restartBtn = document.getElementById('restartBtn');
+        const mp3Input = document.getElementById('mp3Input');
+        const fileNameDisplay = document.getElementById('fileName');
+        const statusDisplay = document.getElementById('status');
+        const lyricsOutput = document.getElementById('lyricsOutput');
+        const progressBarContainer = document.getElementById('progress-bar-container');
+        const progressBar = document.getElementById('progress-bar');
+        const modelInfo = document.getElementById('model-info');
+        
+        const uploadUi = document.getElementById('upload-ui');
+        const playerUi = document.getElementById('player-ui');
+        
+        const audioPlayer = document.getElementById('audio-player');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const seekBar = document.getElementById('seekBar');
+        const currentTimeEl = document.getElementById('currentTime');
+        const totalDurationEl = document.getElementById('totalDuration');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeIcon = document.getElementById('volumeIcon');
+        
+        const downloadBtn = document.getElementById('downloadBtn');
+        const restartBtn = document.getElementById('restartBtn');
 
-    mp3Input.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+        mp3Input.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-        fileNameDisplay.textContent = `Selected: ${file.name}`;
-        statusDisplay.textContent = 'Starting process...';
-        mp3Input.disabled = true;
-        progressBarContainer.style.display = 'block';
-        progressBar.style.width = '0%';
+            fileNameDisplay.textContent = `Selected: ${file.name}`;
+            statusDisplay.textContent = 'Starting process...';
+            mp3Input.disabled = true;
+            progressBarContainer.style.display = 'block';
+            progressBar.style.width = '0%';
 
-        try {
-            const buffer = await file.arrayBuffer();
-            audioPlayer.src = URL.createObjectURL(file);
+            try {
+                const buffer = await file.arrayBuffer();
+                audioPlayer.src = URL.createObjectURL(file);
 
-            statusDisplay.textContent = 'Decoding audio...';
-            progressBar.style.width = '10%';
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-            const audioBuffer = await audioCtx.decodeAudioData(buffer.slice(0));
-            progressBar.style.width = '25%';
+                statusDisplay.textContent = 'Decoding audio...';
+                progressBar.style.width = '10%';
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                const audioBuffer = await audioCtx.decodeAudioData(buffer.slice(0));
+                progressBar.style.width = '25%';
 
-            let inputData;
-            if (audioBuffer.numberOfChannels > 1) {
-                const mono = new Float32Array(audioBuffer.length);
-                for (let i = 0; i < audioBuffer.length; i++) {
-                    let sum = 0;
-                    for (let c = 0; c < audioBuffer.numberOfChannels; c++) sum += audioBuffer.getChannelData(c)[i];
-                    mono[i] = sum / audioBuffer.numberOfChannels;
+                let inputData;
+                if (audioBuffer.numberOfChannels > 1) {
+                    const mono = new Float32Array(audioBuffer.length);
+                    for (let i = 0; i < audioBuffer.length; i++) {
+                        let sum = 0;
+                        for (let c = 0; c < audioBuffer.numberOfChannels; c++) sum += audioBuffer.getChannelData(c)[i];
+                        mono[i] = sum / audioBuffer.numberOfChannels;
+                    }
+                    inputData = mono;
+                } else {
+                    inputData = audioBuffer.getChannelData(0);
                 }
-                inputData = mono;
-            } else {
-                inputData = audioBuffer.getChannelData(0);
-            }
 
-            const worker = new Worker('worker.js', { type: 'module' });
+                const worker = new Worker('worker.js', { type: 'module' });
 
-            worker.onmessage = (event) => {
-                const { status, message, text, chunks, progress } = event.data;
-                switch (status) {
-                    case 'loading_model':
-                        statusDisplay.textContent = "Loading AI model (first load is slow)...";
-                        break;
-                    case 'model_progress':
-                        // The 'progress' object is now guaranteed to be clean
-                        progressBar.style.width = `${25 + progress.progress * 0.5}%`;
-                        break;
-                    case 'transcribing':
-                        statusDisplay.textContent = "Transcribing audio...";
-                        progressBar.style.width = '75%';
-                        lastChunkTime = Date.now();
-                        break;
-                    case 'transcribe_progress':
-                        // The 'progress' object is now guaranteed to be clean
-                        const chunkProgress = progress.processed_chunks / progress.total_chunks;
-                        progressBar.style.width = `${75 + chunkProgress * 25}%`;
-                        
-                        const timeElapsed = Date.now() - lastChunkTime;
-                        const timePerChunk = timeElapsed / progress.processed_chunks;
-                        const remainingChunks = progress.total_chunks - progress.processed_chunks;
-                        const estimatedRemaining = Math.round((remainingChunks * timePerChunk) / 1000);
-                        
-                        statusDisplay.textContent = `Transcribing... (Chunk ${progress.processed_chunks}/${progress.total_chunks}) - ETA: ${estimatedRemaining}s`;
-                        break;
-                    case 'complete':
-                        progressBar.style.width = '100%';
-                        transcribedText = text;
-                        setTimeout(() => {
-                            renderLyrics(chunks);
-                            uploadUi.style.display = 'none';
-                            playerUi.style.display = 'flex';
-                        }, 500);
-                        worker.terminate();
-                        break;
-                    case 'error':
-                        statusDisplay.textContent = `Error: ${message}`;
-                        mp3Input.disabled = false;
-                        progressBarContainer.style.display = 'none';
-                        worker.terminate();
-                        break;
-                }
-            };
+                worker.onmessage = (event) => {
+                    const { status, message, text, chunks, progress, model } = event.data;
+                    switch (status) {
+                        case 'loading_model':
+                            statusDisplay.textContent = "Loading AI model (this may be slow on first run)...";
+                            modelInfo.textContent = `Using Model: ${model}`;
+                            break;
+                        case 'model_progress':
+                            progressBar.style.width = `${25 + progress.progress * 0.5}%`;
+                            break;
+                        case 'transcribing':
+                            statusDisplay.textContent = "Transcribing audio...";
+                            progressBar.style.width = '75%';
+                            lastChunkTime = Date.now();
+                            break;
+                        case 'transcribe_progress':
+                            const chunkProgress = progress.processed_chunks / progress.total_chunks;
+                            progressBar.style.width = `${75 + chunkProgress * 25}%`;
+                            
+                            const timeElapsed = Date.now() - lastChunkTime;
+                            const timePerChunk = timeElapsed / progress.processed_chunks;
+                            const remainingChunks = progress.total_chunks - progress.processed_chunks;
+                            const estimatedRemaining = Math.round((remainingChunks * timePerChunk) / 1000);
+                            
+                            statusDisplay.textContent = `Transcribing... (Chunk ${progress.processed_chunks}/${progress.total_chunks}) - ETA: ${estimatedRemaining}s`;
+                            break;
+                        case 'complete':
+                            progressBar.style.width = '100%';
+                            transcribedText = text;
+                            setTimeout(() => {
+                                renderLyrics(chunks);
+                                uploadUi.style.display = 'none';
+                                playerUi.style.display = 'flex';
+                            }, 500);
+                            worker.terminate();
+                            break;
+                        case 'error':
+                            statusDisplay.textContent = `Error: ${message}`;
+                            mp3Input.disabled = false;
+                            progressBarContainer.style.display = 'none';
+                            worker.terminate();
+                            break;
+                    }
+                };
 
-            worker.postMessage({ audio: inputData });
+                worker.postMessage({ audio: inputData });
 
-        } catch (err) {
-            statusDisplay.textContent = `Error: ${err.message}`;
-            console.error(err);
-            mp3Input.disabled = false;
-        }
-    });
-
-    function renderLyrics(chunks) {
-        lyricsOutput.innerHTML = '';
-        if (chunks) {
-            chunks.forEach(chunk => {
-                const span = document.createElement('span');
-                span.textContent = chunk.text + ' ';
-                span.className = 'word';
-                span.dataset.start = chunk.timestamp[0];
-                span.dataset.end = chunk.timestamp[1];
-                lyricsOutput.appendChild(span);
-            });
-        }
-    }
-
-    // --- BUTTON AND PLAYER LOGIC ---
-    downloadBtn.addEventListener('click', () => {
-        const blob = new Blob([transcribedText], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${fileNameDisplay.textContent.replace('.mp3', '')}_lyrics.txt`;
-        a.click();
-        URL.revokeObjectURL(url);
-    });
-
-    restartBtn.addEventListener('click', () => {
-        audioPlayer.pause();
-        audioPlayer.src = '';
-        playerUi.style.display = 'none';
-        uploadUi.style.display = 'block';
-        mp3Input.value = '';
-        mp3Input.disabled = false;
-        fileNameDisplay.textContent = '';
-        statusDisplay.textContent = '';
-        progressBarContainer.style.display = 'none';
-    });
-
-    audioPlayer.addEventListener('loadedmetadata', () => {
-        totalDurationEl.textContent = formatTime(audioPlayer.duration);
-        playPauseBtn.disabled = false;
-        seekBar.disabled = false;
-    });
-
-    audioPlayer.addEventListener('timeupdate', () => {
-        if (!isSeeking) seekBar.value = (audioPlayer.currentTime / audioPlayer.duration) * 100 || 0;
-        currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
-        highlightCurrentWord();
-    });
-
-    audioPlayer.addEventListener('play', () => playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>');
-    audioPlayer.addEventListener('pause', () => playPauseBtn.innerHTML = '<i class="fas fa-play"></i>');
-    audioPlayer.addEventListener('ended', () => playPauseBtn.innerHTML = '<i class="fas fa-play"></i>');
-
-    playPauseBtn.addEventListener('click', () => {
-        if (audioPlayer.paused) audioPlayer.play();
-        else audioPlayer.pause();
-    });
-
-    seekBar.addEventListener('input', () => {
-        isSeeking = true;
-        currentTimeEl.textContent = formatTime((seekBar.value / 100) * audioPlayer.duration);
-    });
-    seekBar.addEventListener('change', () => {
-        isSeeking = false;
-        audioPlayer.currentTime = (seekBar.value / 100) * audioPlayer.duration;
-    });
-
-    function highlightCurrentWord() {
-        const currentTime = audioPlayer.currentTime;
-        const words = lyricsOutput.querySelectorAll('.word');
-        words.forEach(word => {
-            const start = parseFloat(word.dataset.start);
-            const end = parseFloat(word.dataset.end);
-            if (currentTime >= start && currentTime <= end) {
-                word.classList.add('active');
-            } else {
-                word.classList.remove('active');
+            } catch (err) {
+                statusDisplay.textContent = `Error: ${err.message}`;
+                console.error(err);
+                mp3Input.disabled = false;
             }
         });
-    }
 
-    function formatTime(seconds) {
-        if (isNaN(seconds)) return '0:00';
-        const minutes = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-  </script>
+        function renderLyrics(chunks) {
+            lyricsOutput.innerHTML = '';
+            if (chunks) {
+                chunks.forEach(chunk => {
+                    const span = document.createElement('span');
+                    span.textContent = chunk.text + ' ';
+                    span.className = 'word';
+                    span.dataset.start = chunk.timestamp[0];
+                    span.dataset.end = chunk.timestamp[1];
+                    lyricsOutput.appendChild(span);
+                });
+            }
+        }
+
+        downloadBtn.addEventListener('click', () => {
+            const blob = new Blob([transcribedText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${fileNameDisplay.textContent.replace('.mp3', '')}_lyrics.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        restartBtn.addEventListener('click', () => {
+            audioPlayer.pause();
+            audioPlayer.src = '';
+            playerUi.style.display = 'none';
+            uploadUi.style.display = 'block';
+            mp3Input.value = '';
+            mp3Input.disabled = false;
+            fileNameDisplay.textContent = '';
+            statusDisplay.textContent = '';
+            modelInfo.textContent = '';
+            progressBarContainer.style.display = 'none';
+        });
+
+        audioPlayer.addEventListener('loadedmetadata', () => {
+            totalDurationEl.textContent = formatTime(audioPlayer.duration);
+            playPauseBtn.disabled = false;
+            seekBar.disabled = false;
+        });
+
+        audioPlayer.addEventListener('timeupdate', () => {
+            if (!isSeeking) seekBar.value = (audioPlayer.currentTime / audioPlayer.duration) * 100 || 0;
+            currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
+            highlightCurrentWord();
+        });
+
+        audioPlayer.addEventListener('play', () => playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>');
+        audioPlayer.addEventListener('pause', () => playPauseBtn.innerHTML = '<i class="fas fa-play"></i>');
+        audioPlayer.addEventListener('ended', () => playPauseBtn.innerHTML = '<i class="fas fa-play"></i>');
+
+        playPauseBtn.addEventListener('click', () => {
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+            } else {
+                audioPlayer.pause();
+            }
+        });
+
+        seekBar.addEventListener('input', () => {
+            isSeeking = true;
+            currentTimeEl.textContent = formatTime((seekBar.value / 100) * audioPlayer.duration);
+        });
+        seekBar.addEventListener('change', () => {
+            isSeeking = false;
+            audioPlayer.currentTime = (seekBar.value / 100) * audioPlayer.duration;
+        });
+
+        function handleVolumeChange() {
+            audioPlayer.volume = volumeSlider.value / 100;
+            const volume = volumeSlider.value;
+            if (volume == 0) {
+                volumeIcon.className = 'fas fa-volume-mute text-gray-400';
+            } else if (volume < 50) {
+                volumeIcon.className = 'fas fa-volume-down text-gray-400';
+            } else {
+                volumeIcon.className = 'fas fa-volume-up text-gray-400';
+            }
+        }
+        volumeSlider.addEventListener('input', handleVolumeChange);
+        handleVolumeChange(); // Set initial icon
+
+        function highlightCurrentWord() {
+            const currentTime = audioPlayer.currentTime;
+            const words = lyricsOutput.querySelectorAll('.word');
+            let activeWord = null;
+            words.forEach(word => {
+                const start = parseFloat(word.dataset.start);
+                const end = parseFloat(word.dataset.end);
+                if (currentTime >= start && currentTime <= end) {
+                    word.classList.add('active');
+                    activeWord = word;
+                } else {
+                    word.classList.remove('active');
+                }
+            });
+            if(activeWord) {
+                const container = lyricsOutput;
+                const scroll = activeWord.offsetTop - container.offsetTop - (container.clientHeight / 2) + (activeWord.clientHeight / 2);
+                container.scrollTop = scroll;
+            }
+        }
+
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return '0:00';
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+    </script>
 </body>
 </html>

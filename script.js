@@ -208,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Alpine → playlist
+    // Alpine → playlist (local files)
     window.addEventListener('files:added', (e) => {
       const files = Array.isArray(e.detail) ? e.detail : [];
       if (!files.length) return;
@@ -238,6 +238,44 @@ document.addEventListener('DOMContentLoaded', () => {
       stopPlaybackAndClear();
       showToast('Playlist cleared', 'success');
     });
+
+    // --- NEW: accept external/radio tracks ---
+    window.addEventListener('playlist:add-external', (e) => {
+      const t = e.detail || {};
+      if (!t.url) return;
+
+      unlockAndInitAudio();
+
+      // De-dupe by exact URL
+      const existingUrl = playlist.some(p => p.url === t.url);
+      if (existingUrl) {
+        showToast('Already in playlist', 'info');
+        return;
+      }
+
+      const track = {
+        file: null,
+        url: t.url,
+        name: t.name || 'Stream',
+        artist: t.artist || 'Internet Radio',
+        type: t.type || 'radio'
+      };
+
+      playlist.push(track);
+      renderPlaylist();
+
+      // Auto-play if nothing loaded yet
+      if (currentTrackIndex === -1 && playlist.length > 0) {
+        loadTrack(playlist.length - 1);
+      } else {
+        showToast(`Added: ${track.name}`, 'success');
+      }
+    });
+
+    // Optional: tiny API so the page can call directly
+    window.__playlistApi = {
+      addExternalTrack: (t) => window.dispatchEvent(new CustomEvent('playlist:add-external', { detail: t }))
+    };
   }
 
   // --- Global keyboard shortcuts ---
@@ -425,7 +463,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (index < 0 || index >= playlist.length) return;
 
     const removingCurrent = (index === currentTrackIndex);
-    try { playlist[index].url && URL.revokeObjectURL(playlist[index].url); } catch {}
+    try {
+      const u = playlist[index].url;
+      if (u && typeof u === 'string' && u.startsWith('blob:')) URL.revokeObjectURL(u);
+    } catch {}
 
     playlist.splice(index, 1);
 
@@ -483,7 +524,12 @@ document.addEventListener('DOMContentLoaded', () => {
       audioElement.removeAttribute('src');
       audioElement.load();
     }
-    for (const item of playlist) { if (item.url) URL.revokeObjectURL(item.url); }
+    for (const item of playlist) {
+      try {
+        const u = item.url;
+        if (u && typeof u === 'string' && u.startsWith('blob:')) URL.revokeObjectURL(u);
+      } catch {}
+    }
     playlist = [];
     currentTrackIndex = -1;
     isPlaying = false;
@@ -555,14 +601,30 @@ document.addEventListener('DOMContentLoaded', () => {
     playPauseButton.disabled = !hasTracks;
     skipBackButton.disabled = playlist.length < 2;
     skipForwardButton.disabled = playlist.length < 2;
-    seekBar.disabled = !hasTracks;
+
+    // seek enabled for finite media only (live streams disable it)
+    const finite = audioElement && isFinite(audioElement.duration);
+    seekBar.disabled = !hasTracks || !finite;
 
     playPauseButton.innerHTML = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
     if (!hasTracks) currentTrackNameDisplay.textContent = 'No song selected';
   }
 
   function updateSeekBar() {
-    if (!audioElement || !isFinite(audioElement.duration)) return;
+    if (!audioElement) return;
+
+    const finite = isFinite(audioElement.duration);
+
+    if (!finite) {
+      // Live stream or unknown duration
+      seekBar.disabled = true;
+      seekBar.value = 0;
+      seekBar.style.setProperty('--seek-before-width', `0%`);
+      currentTimeDisplay.textContent = '—';
+      totalDurationDisplay.textContent = 'LIVE';
+      return;
+    }
+
     if (!isSeeking) {
       const progress = (audioElement.currentTime / audioElement.duration) * 100;
       seekBar.value = isNaN(progress) ? 0 : progress;

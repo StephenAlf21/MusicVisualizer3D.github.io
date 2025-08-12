@@ -11,12 +11,16 @@ document.addEventListener('DOMContentLoaded', () => {
   let isPlaying = false, isSeeking = false;
   let dataArray;
 
-  // Visualizer state
+  // CORS/analysis fallback
+  let ambientMode = false;
+  let zeroFrames = 0;
+
+  // Visualizer
   let web;
   let originalPositions;
   let particles;
   let preset = 'cosmic-grid';
-  let sensitivity = 60;      // 0..100
+  let sensitivity = 60;
   let particlesEnabled = true;
 
   // --- DOM ---
@@ -80,16 +84,16 @@ document.addEventListener('DOMContentLoaded', () => {
     switch (nextPreset) {
       case 'wave-tunnel':
         baseGeometry = new THREE.TorusKnotGeometry(28, 6, 200, 16);
-        lineColor = 0x22d3ee; // cyan
+        lineColor = 0x22d3ee;
         break;
       case 'particle-burst':
         baseGeometry = new THREE.DodecahedronGeometry(40, 6);
-        lineColor = 0xf97316; // orange
+        lineColor = 0xf97316;
         break;
       case 'cosmic-grid':
       default:
         baseGeometry = new THREE.IcosahedronGeometry(40, 8);
-        lineColor = 0x4299e1; // blue
+        lineColor = 0x4299e1;
         break;
     }
 
@@ -140,16 +144,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+      // Create element for native playback; analyser is attached separately
       audioElement = new Audio();
+      audioElement.crossOrigin = 'anonymous';   // IMPORTANT for CORS-friendly stations
+      audioElement.preload = 'metadata';
       audioElement.volume = volumeSlider.value / 100;
 
       analyser = audioContext.createAnalyser();
       analyser.fftSize = 512;
       dataArray = new Uint8Array(analyser.frequencyBinCount);
 
+      // Attach the analyser but DO NOT route audio via WebAudio to destination.
+      // This avoids "zeroes" from muting playback; the element plays natively.
       source = audioContext.createMediaElementSource(audioElement);
       source.connect(analyser);
-      analyser.connect(audioContext.destination);
 
       audioElement.addEventListener('play', () => { isPlaying = true; renderPlaylist(); updateUI(); });
       audioElement.addEventListener('pause', () => { isPlaying = false; renderPlaylist(); updateUI(); });
@@ -157,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
       audioElement.addEventListener('timeupdate', updateSeekBar);
       audioElement.addEventListener('loadedmetadata', updateSeekBar);
 
-      showToast("Audio system ready!", "success");
+      showToast("Audio ready", "success");
     } catch (e) {
       console.error("Failed to initialize AudioContext:", e);
       showToast("Error: Could not initialize audio.", "error");
@@ -175,13 +184,13 @@ document.addEventListener('DOMContentLoaded', () => {
     skipBackButton.onclick = () => loadTrack(currentTrackIndex - 1);
     skipForwardButton.onclick = () => loadTrack(currentTrackIndex + 1);
 
-    seekBar.oninput = () => {
+    // Seek handling (works on mouse & touch; only for finite media)
+    seekBar.addEventListener('input', () => {
       seekBar.style.setProperty('--seek-before-width', `${seekBar.value}%`);
-    };
-    seekBar.onmousedown = () => { isSeeking = true; };
-    seekBar.onmouseup = () => { isSeeking = false; seekToPosition(); };
-    seekBar.addEventListener('touchstart', () => { isSeeking = true; });
-    seekBar.addEventListener('touchend', () => { isSeeking = false; seekToPosition(); });
+    });
+    seekBar.addEventListener('change', () => seekToPosition());
+    seekBar.addEventListener('pointerdown', () => { isSeeking = true; });
+    seekBar.addEventListener('pointerup', () => { isSeeking = false; seekToPosition(); });
 
     volumeSlider.oninput = handleVolumeChange;
 
@@ -192,13 +201,11 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast(`Sensitivity: ${sensitivity}`, 'success');
       }
     });
-
     window.addEventListener('visualizer:particles', (e) => {
       particlesEnabled = !!e.detail;
       updateParticlesVisibility();
       showToast(particlesEnabled ? 'Particles: on' : 'Particles: off', 'success');
     });
-
     window.addEventListener('visualizer:preset', (e) => {
       const next = String(e.detail || '').toLowerCase();
       if (['cosmic-grid', 'wave-tunnel', 'particle-burst'].includes(next)) {
@@ -207,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Alpine → playlist (local files)
+    // Local files
     window.addEventListener('files:added', (e) => {
       const files = Array.isArray(e.detail) ? e.detail : [];
       if (!files.length) return;
@@ -217,16 +224,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('playlist:sort', () => {
       if (!playlist.length) return;
-
       const currentTrackObj = currentTrackIndex >= 0 ? playlist[currentTrackIndex] : null;
-
       playlist.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-
       if (currentTrackObj) {
         const newIdx = playlist.indexOf(currentTrackObj);
         if (newIdx !== -1) currentTrackIndex = newIdx;
       }
-
       renderPlaylist();
       showToast('Playlist sorted A–Z', 'success');
     });
@@ -236,14 +239,13 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Playlist cleared', 'success');
     });
 
-    // --- Accept external/radio tracks from UI (Live Radio block) ---
+    // External/radio tracks
     window.addEventListener('playlist:add-external', (e) => {
       const t = e.detail || {};
       if (!t.url) return;
 
       unlockAndInitAudio();
 
-      // De-dupe by URL
       if (playlist.some(p => p.url === t.url)) {
         showToast('Already in playlist', 'info');
         return;
@@ -260,7 +262,6 @@ document.addEventListener('DOMContentLoaded', () => {
       playlist.push(track);
       renderPlaylist();
 
-      // Auto-play if nothing loaded yet
       if (currentTrackIndex === -1 && playlist.length > 0) {
         loadTrack(playlist.length - 1);
       } else {
@@ -268,13 +269,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Optional: tiny API so the page can call directly
     window.__playlistApi = {
       addExternalTrack: (t) => window.dispatchEvent(new CustomEvent('playlist:add-external', { detail: t }))
     };
   }
 
-  // --- Global keyboard shortcuts ---
+  // --- Shortcuts ---
   function setupGlobalShortcuts() {
     const shouldIgnore = (el) => {
       if (!el) return false;
@@ -320,14 +320,6 @@ document.addEventListener('DOMContentLoaded', () => {
         case 'm':
           e.preventDefault();
           toggleMute();
-          break;
-        case 's':
-          e.preventDefault();
-          document.querySelector('button[title="Visualizer Settings"]')?.click();
-          break;
-        case 't':
-          e.preventDefault();
-          document.querySelector('button[title="Toggle theme"]')?.click();
           break;
       }
     });
@@ -378,15 +370,33 @@ document.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(animate);
 
     if (web) {
-      web.rotation.y += (preset === 'wave-tunnel' ? 0.002 : 0.001);
-      web.rotation.x += 0.0005;
+      const spin = ambientMode ? 0.002 : (preset === 'wave-tunnel' ? 0.002 : 0.001);
+      web.rotation.y += spin;
+      web.rotation.x += ambientMode ? 0.001 : 0.0005;
     }
-    if (particles?.visible) particles.rotation.y -= 0.0004;
+    if (particles?.visible) particles.rotation.y -= ambientMode ? 0.0006 : 0.0004;
 
-    if (isPlaying && analyser) {
+    if (isPlaying && analyser && !ambientMode) {
       analyser.getByteFrequencyData(dataArray);
+
+      // Detect persistent zeroes (CORS-limited streams)
+      let sum = 0;
+      for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+      if (sum < 5) zeroFrames++; else zeroFrames = 0;
+      if (zeroFrames > 120) { // ~2 sec @60fps
+        ambientMode = true;
+        showToast('Stream blocks analysis. Ambient visuals enabled.', 'info');
+      }
+
       updateVisualizer(dataArray);
+    } else if (ambientMode) {
+      // Drive visuals with a gentle LFO when we can’t analyze audio
+      const fake = new Uint8Array(256);
+      const t = performance.now() * 0.002;
+      for (let i = 0; i < fake.length; i++) fake[i] = 64 + 32 * (1 + Math.sin(t + i * 0.12));
+      updateVisualizer(fake);
     }
+
     renderer.render(scene, camera);
   }
 
@@ -442,7 +452,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Playlist ---
   function addFilesArrayToPlaylist(files) {
-    // De-dupe by name+size
     const existingKeys = new Set(playlist.map(p => `${p.name}::${p.file?.size ?? -1}`));
     for (const file of files) {
       if (!(file && file.name && /\.mp3$/i.test(file.name))) continue;
@@ -457,13 +466,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function removeTrack(index) {
     if (index < 0 || index >= playlist.length) return;
-
     const removingCurrent = (index === currentTrackIndex);
     try {
       const u = playlist[index].url;
       if (u && typeof u === 'string' && u.startsWith('blob:')) URL.revokeObjectURL(u);
     } catch {}
-
     playlist.splice(index, 1);
 
     if (!playlist.length) {
@@ -483,18 +490,29 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function loadTrack(index) {
-    if (!playlist.length || !audioContext) return;
+    if (!playlist.length) return;
+
+    if (!audioContext) unlockAndInitAudio();
+
     if (index < 0) index = playlist.length - 1;
     if (index >= playlist.length) index = 0;
 
     currentTrackIndex = index;
     const track = playlist[index];
+
+    // Reset ambient mode (we’ll re-detect)
+    ambientMode = false;
+    zeroFrames = 0;
+
     currentTrackNameDisplay.textContent = track.name;
 
+    // Set src *after* crossOrigin
+    audioElement.crossOrigin = 'anonymous';
     audioElement.src = track.url;
+
     audioElement.play().catch(e => {
       console.error("Playback error:", e);
-      showToast("Error playing audio file.", "error");
+      showToast("Error playing audio.", "error");
     });
 
     renderPlaylist();
@@ -506,7 +524,7 @@ document.addEventListener('DOMContentLoaded', () => {
         unlockAndInitAudio();
         loadTrack(0);
       } else {
-        showToast("Please add MP3 files to the playlist first.", "info");
+        showToast("Add a track or radio stream first.", "info");
       }
       return;
     }
@@ -540,10 +558,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function seekToPosition() {
     if (!audioElement || !isFinite(audioElement.duration)) return;
-    audioElement.currentTime = (seekBar.value / 100) * audioElement.duration;
+    const pct = Number(seekBar.value) / 100;
+    audioElement.currentTime = pct * audioElement.duration;
   }
 
-  // --- UI helpers ---
+  // --- UI ---
   function renderPlaylist() {
     playlistContainer.innerHTML = '';
     const has = playlist.length > 0;
@@ -597,7 +616,6 @@ document.addEventListener('DOMContentLoaded', () => {
     skipBackButton.disabled = playlist.length < 2;
     skipForwardButton.disabled = playlist.length < 2;
 
-    // seek enabled for finite media only (live streams disable it)
     const finite = audioElement && isFinite(audioElement.duration);
     seekBar.disabled = !hasTracks || !finite;
 
@@ -609,9 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!audioElement) return;
 
     const finite = isFinite(audioElement.duration);
-
     if (!finite) {
-      // Live stream or unknown duration
       seekBar.disabled = true;
       seekBar.value = 0;
       seekBar.style.setProperty('--seek-before-width', `0%`);

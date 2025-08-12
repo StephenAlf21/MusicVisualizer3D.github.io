@@ -17,19 +17,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 
-  <!-- Favicons (optional) -->
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png"/>
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png"/>
-  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png"/>
-  <link rel="manifest" href="site.webmanifest"/>
-
-  <!-- Your site CSS -->
+  <!-- Site CSS -->
   <link rel="stylesheet" href="style.css"/>
 
   <style>
     body { font-family: 'Inter', sans-serif; }
 
-    /* now-playing indicator */
     .now-playing-indicator { display: none; }
     .playlist-item.playing .now-playing-indicator {
       display: flex; align-items: flex-end; gap: 2px; height: 16px;
@@ -44,7 +37,6 @@
     .now-playing-indicator .bar:nth-child(4) { animation-delay: -0.6s; }
     @keyframes bounce { 0%,100%{transform:scaleY(0.2)} 50%{transform:scaleY(1)} }
 
-    /* filled progress for seek */
     #seekBar{
       background: linear-gradient(
         to right,
@@ -101,7 +93,6 @@
         <a href="lyrics.html">Lyrics Converter</a>
       </div>
 
-      <!-- Right utilities -->
       <div class="flex items-center gap-2">
         <button class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-sm"
                 @click="showShortcuts=true" title="Keyboard Shortcuts">
@@ -118,7 +109,7 @@
       </div>
     </nav>
 
-    <!-- Main: Canvas + Sidebar -->
+    <!-- Main -->
     <div class="flex-grow flex flex-col md:flex-row overflow-hidden"
          @dragover.prevent
          @drop.prevent="handleDrop($event)">
@@ -138,7 +129,7 @@
         </div>
       </div>
 
-      <!-- Sidebar: Playlist + Live Radio -->
+      <!-- Sidebar -->
       <aside class="w-full md:w-[360px] flex-shrink-0 bg-gray-900/60 backdrop-blur-sm p-4 border-l border-gray-700 flex flex-col">
         <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-700">
           <h3 class="text-xl font-semibold">Up Next</h3>
@@ -157,7 +148,7 @@
           <template x-if="!hasTracks">
             <p id="empty-playlist-message" class="text-gray-400 text-center mt-4">Add some MP3s to get started.</p>
           </template>
-          <!-- script.js renders items into #playlist-items-container -->
+          <!-- script.js renders items -->
         </div>
 
         <!-- LIVE RADIO -->
@@ -175,29 +166,24 @@
           </div>
 
           <div id="radioRecommended">
-            <p class="text-xs text-gray-400 mb-2">Open Access Stations</p>
+            <p class="text-xs text-gray-400 mb-2">Open Access Stations (HTTPS)</p>
             <ul class="space-y-1"></ul>
           </div>
         </div>
-        <!-- /LIVE RADIO -->
       </aside>
     </div>
 
     <!-- Bottom Controls -->
     <footer class="flex-shrink-0 bg-gray-900/70 backdrop-blur-md border-t border-gray-700 p-4 flex flex-col items-center gap-3">
-      <!-- Seek -->
       <div class="w-full max-w-3xl flex items-center gap-3">
         <span id="currentTime" class="w-12 text-center text-sm text-gray-400">0:00</span>
         <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1" disabled class="flex-grow">
         <span id="totalDuration" class="w-12 text-center text-sm text-gray-400">0:00</span>
       </div>
-      <!-- Controls -->
       <div class="w-full max-w-3xl flex items-center justify-between gap-4">
-        <!-- Track Name -->
         <div class="w-1/3">
           <p id="currentTrackName" class="text-sm text-gray-300 truncate font-medium">No song selected</p>
         </div>
-        <!-- Buttons -->
         <div class="flex items-center justify-center gap-4">
           <button id="skipBackButton" class="control-btn" title="Previous Track" disabled><i class="fas fa-backward-step"></i></button>
           <button id="playPauseButton" class="control-btn accent-red play-pause-btn text-2xl w-14 h-14 rounded-full" disabled>
@@ -205,95 +191,12 @@
           </button>
           <button id="skipForwardButton" class="control-btn" title="Next Track" disabled><i class="fas fa-forward-step"></i></button>
         </div>
-        <!-- Volume -->
         <div class="w-1/3 flex items-center justify-end gap-2">
           <i id="volumeIcon" class="fas fa-volume-up text-gray-400"></i>
-          <input type="range" id="volumeSlider" min="0" max="100" value="50" class="w-24">
+          <input type="range" id="volumeSlider" min="0" max="100" value="60" class="w-24">
         </div>
       </div>
     </footer>
-  </div>
-
-  <!-- Settings Drawer (Alpine) -->
-  <div x-show="settingsOpen" x-transition.opacity
-       class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm">
-    <div class="absolute right-0 top-0 h-full w-full sm:w-[420px] bg-gray-900 border-l border-gray-700 p-6 overflow-y-auto">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xl font-bold">Visualizer Settings</h3>
-        <button class="text-2xl leading-none text-gray-400 hover:text-white"
-                @click="settingsOpen=false">&times;</button>
-      </div>
-
-      <div class="space-y-6">
-        <!-- Preset -->
-        <div>
-          <label class="block text-sm font-medium text-gray-300 mb-2">Preset</label>
-          <select class="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2"
-                  x-model="preset"
-                  @change="notify('preset', preset)">
-            <option value="cosmic-grid">Cosmic Grid</option>
-            <option value="wave-tunnel">Wave Tunnel</option>
-            <option value="particle-burst">Particle Burst</option>
-          </select>
-          <p class="text-xs text-gray-400 mt-1">Sends a <code>visualizer:preset</code> event.</p>
-        </div>
-
-        <!-- Sensitivity -->
-        <div>
-          <label class="block text-sm font-medium text-gray-300 mb-2">
-            Sensitivity <span class="text-gray-400">(FFT / gain)</span>
-          </label>
-          <input type="range" min="0" max="100" x-model.number="sensitivity"
-                 @input="notify('sensitivity', sensitivity)"
-                 class="w-full">
-        </div>
-
-        <!-- Particles -->
-        <div class="flex items-center justify-between">
-          <div>
-            <div class="text-sm font-medium text-gray-300">Particles</div>
-            <div class="text-xs text-gray-400">Enable extra visual effects</div>
-          </div>
-          <label class="inline-flex items-center cursor-pointer">
-            <input type="checkbox" class="hidden" x-model="particles"
-                   @change="notify('particles', particles)">
-            <span class="w-12 h-6 bg-white/10 border border-white/10 rounded-full relative">
-              <span class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition"
-                    :style="particles ? 'transform: translateX(24px)' : ''"></span>
-            </span>
-          </label>
-        </div>
-
-        <!-- Reset -->
-        <div class="pt-2">
-          <button class="w-full px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg"
-                  @click="resetSettings()">Reset to defaults</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Keyboard Shortcuts Modal -->
-  <div x-show="showShortcuts" x-transition.opacity
-       class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-    <div @click.outside="showShortcuts=false"
-         x-transition.scale
-         class="bg-gray-900/90 border border-gray-700 rounded-2xl p-6 w-full max-w-lg">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xl font-bold">Keyboard Shortcuts</h3>
-        <button class="text-2xl leading-none text-gray-400 hover:text-white"
-                @click="showShortcuts=false">&times;</button>
-      </div>
-      <ul class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-300">
-        <li><span class="font-semibold">Space</span> — Play/Pause</li>
-        <li><span class="font-semibold">← / →</span> — Seek -/+ 5s</li>
-        <li><span class="font-semibold">↑ / ↓</span> — Volume up/down</li>
-        <li><span class="font-semibold">A</span> — Sort A–Z</li>
-        <li><span class="font-semibold">N / P</span> — Next / Previous</li>
-        <li><span class="font-semibold">S</span> — Toggle Settings</li>
-        <li><span class="font-semibold">M</span> — Mute/Unmute</li>
-      </ul>
-    </div>
   </div>
 
   <!-- Alpine helpers -->
@@ -306,14 +209,12 @@
         preset:'cosmic-grid',
         sensitivity:60,
         particles:true,
-        hasTracks:false, // toggled by playlist events
+        hasTracks:false,
         init(){
-          // Receive playlist state updates from script.js
           window.addEventListener('playlist:state', (e)=>{
             try { this.hasTracks = !!(e.detail && e.detail.hasTracks); } catch {}
           });
         },
-
         toggleTheme(){
           this.theme = (this.theme === 'dark') ? 'light' : 'dark';
           document.documentElement.classList.toggle('tw-light', this.theme === 'light');
@@ -357,7 +258,6 @@
 
   <!-- LIVE RADIO integration -->
   <script>
-    // Tiny toast
     function toast(msg) {
       const bar = document.getElementById('message-bar');
       bar.textContent = msg;
@@ -365,10 +265,10 @@
       setTimeout(() => bar.classList.add('-translate-y-full'), 1800);
     }
 
-    // HTTPS-only recommendations
+    // HTTPS-only examples (CORS may still vary by station)
     const RADIO_RECOMMENDED = [
       { name: "BBC World Service", url: "https://stream.live.vc.bbcmedia.co.uk/bbc_world_service", country: "UK" },
-      { name: "NPR News",        url: "https://npr-ice.streamguys1.com/live.mp3",                    country: "USA" }
+      { name: "NPR News",          url: "https://npr-ice.streamguys1.com/live.mp3",                country: "USA" }
     ];
 
     function renderRecommendedStations() {
@@ -389,7 +289,6 @@
       });
     }
 
-    // GET (avoids preflight on GitHub Pages)
     async function fetchStationByName(name) {
       try {
         const params = new URLSearchParams({
@@ -404,7 +303,6 @@
         if (!res.ok) throw new Error('API ' + res.status);
         const stations = await res.json();
         if (!stations || !stations.length) return null;
-        // Prefer HTTPS
         return stations.find(s => s.url_resolved && s.url_resolved.startsWith('https://')) || stations[0];
       } catch (err) {
         console.error('Radio-Browser error', err);

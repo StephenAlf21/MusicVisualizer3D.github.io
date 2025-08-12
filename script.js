@@ -36,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const volumeSlider = $('volumeSlider');
   const volumeIcon = $('volumeIcon');
 
-  // prevent double wiring in dev/hot-reload
   let _listenersWired = false;
 
   // --- Init ---
@@ -219,12 +218,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('playlist:sort', () => {
       if (!playlist.length) return;
 
-      // Remember current track object (if any), then sort
       const currentTrackObj = currentTrackIndex >= 0 ? playlist[currentTrackIndex] : null;
 
       playlist.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
-      // Re-point currentTrackIndex to the same object at its new position
       if (currentTrackObj) {
         const newIdx = playlist.indexOf(currentTrackObj);
         if (newIdx !== -1) currentTrackIndex = newIdx;
@@ -239,16 +236,15 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Playlist cleared', 'success');
     });
 
-    // --- NEW: accept external/radio tracks ---
+    // --- Accept external/radio tracks from UI (Live Radio block) ---
     window.addEventListener('playlist:add-external', (e) => {
       const t = e.detail || {};
       if (!t.url) return;
 
       unlockAndInitAudio();
 
-      // De-dupe by exact URL
-      const existingUrl = playlist.some(p => p.url === t.url);
-      if (existingUrl) {
+      // De-dupe by URL
+      if (playlist.some(p => p.url === t.url)) {
         showToast('Already in playlist', 'info');
         return;
       }
@@ -446,12 +442,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Playlist ---
   function addFilesArrayToPlaylist(files) {
-    // De-dupe by name+size to prevent “double add”
+    // De-dupe by name+size
     const existingKeys = new Set(playlist.map(p => `${p.name}::${p.file?.size ?? -1}`));
     for (const file of files) {
       if (!(file && file.name && /\.mp3$/i.test(file.name))) continue;
       const key = `${file.name}::${file.size ?? -1}`;
-      if (existingKeys.has(key)) continue; // skip duplicates
+      if (existingKeys.has(key)) continue;
       playlist.push({ file, name: file.name, url: URL.createObjectURL(file) });
       existingKeys.add(key);
     }
@@ -569,7 +565,6 @@ document.addEventListener('DOMContentLoaded', () => {
         name.className = 'flex-grow text-white truncate';
         name.textContent = track.name;
 
-        // Small remove button — hidden until hover
         const removeBtn = document.createElement('button');
         removeBtn.className = 'remove-btn';
         removeBtn.title = 'Remove from playlist';

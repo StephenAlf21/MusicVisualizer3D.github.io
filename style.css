@@ -28,6 +28,38 @@
     --accent-tertiary: #f6e05e; /* Yellow */
 }
 
+/* Light theme: override CSS variables when html has .tw-light */
+html.tw-light {
+  --bg-primary: #f9fafb;
+  --bg-secondary: #ffffffcc;
+  --bg-tertiary: #e5e7eb;
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --border-primary: #d1d5db;
+  /* keep accents or tweak if you want brighter ones */
+  --accent-primary: #e11d48;   /* ruby-ish red */
+  --accent-secondary: #2563eb; /* vivid blue */
+  --accent-tertiary: #ca8a04;  /* amber */
+}
+
+/* Make sure base surfaces follow the variables */
+html.tw-light body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Optional: lighten the glass nav in light mode */
+html.tw-light nav.main-nav {
+  background-color: rgba(255,255,255,0.7);
+  border-bottom-color: var(--border-primary);
+}
+
+/* Optional: buttons look lighter in light mode */
+html.tw-light .control-btn {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
 body {
     font-family: 'Inter', sans-serif;
     margin: 0;
@@ -174,3 +206,26 @@ input[type="range"]:hover::-webkit-slider-thumb {
     transform: translateY(-100%);
 }
 
+/* Small, hover-only remove button inside playlist items */
+.playlist-item .remove-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 0.25rem 0.35rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border-primary);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+  font-size: 0.85rem;
+}
+.playlist-item:hover .remove-btn {
+  display: inline-flex;
+}
+.playlist-item .remove-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--border-primary);
+}

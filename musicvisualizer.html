@@ -1,125 +1,333 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" x-data="uiState()" class="scroll-smooth">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geometric Music Visualizer</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Favicon Links -->
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="manifest" href="site.webmanifest">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Geometric Music Visualizer</title>
 
-    <link rel="stylesheet" href="style.css">
-    <style>
-        .now-playing-indicator { display: none; }
-        .playlist-item.playing .now-playing-indicator { display: flex; align-items: flex-end; gap: 2px; height: 16px; }
-        .now-playing-indicator .bar { width: 3px; height: 100%; background-color: var(--accent-tertiary); border-radius: 2px; animation: bounce 1.2s ease-in-out infinite; }
-        .now-playing-indicator .bar:nth-child(2) { animation-delay: -1.0s; }
-        .now-playing-indicator .bar:nth-child(3) { animation-delay: -0.8s; }
-        .now-playing-indicator .bar:nth-child(4) { animation-delay: -0.6s; }
+  <!-- Tailwind CDN (dev/proto only; use CLI/PostCSS for prod) -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-        @keyframes bounce {
-            0%, 100% { transform: scaleY(0.2); }
-            50% { transform: scaleY(1.0); }
-        }
-        
-        /* Style for the filled-in progress on the seek bar */
-        #seekBar {
-            background: linear-gradient(to right, var(--accent-primary) 0%, var(--accent-primary) var(--seek-before-width, 0%), var(--bg-tertiary) var(--seek-before-width, 0%), var(--bg-tertiary) 100%);
-        }
-        #seekBar::-webkit-slider-thumb {
-            background: var(--accent-tertiary); /* Yellow thumb */
-        }
-    </style>
+  <!-- Font Awesome -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+
+  <!-- Inter font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+
+  <!-- Favicons -->
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png"/>
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png"/>
+  <link rel="manifest" href="site.webmanifest"/>
+
+  <!-- Your site CSS -->
+  <link rel="stylesheet" href="style.css"/>
+
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+
+    /* now-playing indicator */
+    .now-playing-indicator { display: none; }
+    .playlist-item.playing .now-playing-indicator {
+      display: flex; align-items: flex-end; gap: 2px; height: 16px;
+    }
+    .now-playing-indicator .bar {
+      width: 3px; height: 100%;
+      background-color: var(--accent-tertiary);
+      border-radius: 2px; animation: bounce 1.2s ease-in-out infinite;
+    }
+    .now-playing-indicator .bar:nth-child(2) { animation-delay: -1.0s; }
+    .now-playing-indicator .bar:nth-child(3) { animation-delay: -0.8s; }
+    .now-playing-indicator .bar:nth-child(4) { animation-delay: -0.6s; }
+    @keyframes bounce { 0%,100%{transform:scaleY(0.2)} 50%{transform:scaleY(1)} }
+
+    /* filled progress for seek */
+    #seekBar{
+      background: linear-gradient(
+        to right,
+        var(--accent-primary) 0%,
+        var(--accent-primary) var(--seek-before-width, 0%),
+        var(--bg-tertiary) var(--seek-before-width, 0%),
+        var(--bg-tertiary) 100%
+      );
+    }
+    #seekBar::-webkit-slider-thumb { background: var(--accent-tertiary); }
+    .no-scrollbar::-webkit-scrollbar{ display:none }
+    .no-scrollbar{ -ms-overflow-style:none; scrollbar-width:none }
+  </style>
 </head>
-<body class="flex flex-col h-screen overflow-hidden bg-gray-900 text-white">
-    
-    <div id="p5-canvas-container"></div>
+<body class="flex flex-col h-screen overflow-hidden bg-gray-900 text-white selection:bg-red-600/40">
 
-    <div class="relative z-10 flex flex-col h-screen">
-        <!-- Notification Bar -->
-        <div id="message-bar" class="fixed top-0 left-0 w-full bg-red-600 text-white text-center p-3 z-50 font-medium transition-transform duration-300 -translate-y-full"></div>
+  <!-- p5 background -->
+  <div id="p5-canvas-container"></div>
 
-        <!-- Shared navigation bar -->
-        <nav class="main-nav">
-            <div class="logo"><i class="fas fa-headphones-alt"></i> Audio Hub</div>
-            <div class="nav-links">
-                <a href="index.html">Home</a>
-                <a href="musicvisualizer.html" class="active">Visualizer</a>
-                <a href="editor.html">Editor</a>
-                <a href="lyrics.html">Lyrics Converter</a>
-            </div>
-        </nav>
-
-        <!-- Main Content Area (Visualizer + Playlist) -->
-        <div class="flex-grow flex flex-col md:flex-row overflow-hidden">
-            <!-- Visualizer Viewport -->
-            <div id="visualizer-container" class="flex-grow relative flex items-center justify-center bg-transparent overflow-hidden">
-                <canvas id="visualizer-canvas" class="absolute top-0 left-0"></canvas>
-            </div>
-
-            <!-- Right Sidebar: Playlist Only -->
-            <aside class="w-full md:w-[350px] flex-shrink-0 bg-gray-900/60 backdrop-blur-sm p-4 border-l border-gray-700 flex flex-col">
-                <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-700">
-                    <h3 class="text-xl font-semibold">Up Next</h3>
-                    <label for="audioFileInput" class="control-btn accent-blue" title="Add MP3(s)">
-                        <i class="fas fa-plus"></i>
-                    </label>
-                    <input type="file" id="audioFileInput" accept=".mp3" class="hidden" multiple>
-                </div>
-                <div id="playlist-items-container" class="flex-grow overflow-y-auto no-scrollbar pr-2">
-                    <p id="empty-playlist-message" class="text-gray-400 text-center mt-4">Add some MP3s to get started.</p>
-                </div>
-            </aside>
-        </div>
-
-        <!-- Bottom Player Controls Bar -->
-        <footer class="flex-shrink-0 bg-gray-900/70 backdrop-blur-md border-t border-gray-700 p-4 flex flex-col items-center gap-3">
-            <!-- Top row: Seek bar and time -->
-            <div class="w-full max-w-3xl flex items-center gap-3">
-                <span id="currentTime" class="w-12 text-center text-sm text-gray-400">0:00</span>
-                <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1" disabled class="flex-grow">
-                <span id="totalDuration" class="w-12 text-center text-sm text-gray-400">0:00</span>
-            </div>
-            <!-- Bottom row: Song name, controls, volume -->
-            <div class="w-full max-w-3xl flex items-center justify-between gap-4">
-                <!-- Song Name -->
-                <div class="w-1/3">
-                    <p id="currentTrackName" class="text-sm text-gray-300 truncate font-medium">No song selected</p>
-                </div>
-                <!-- Media Controls -->
-                <div class="flex items-center justify-center gap-4">
-                    <button id="skipBackButton" class="control-btn" title="Previous Track" disabled><i class="fas fa-backward-step"></i></button>
-                    <button id="playPauseButton" class="control-btn accent-red play-pause-btn text-2xl w-14 h-14 rounded-full" disabled><i class="fas fa-play"></i></button>
-                    <button id="skipForwardButton" class="control-btn" title="Next Track" disabled><i class="fas fa-forward-step"></i></button>
-                </div>
-                <!-- Volume Control -->
-                <div class="w-1/3 flex items-center justify-end gap-2">
-                    <i id="volumeIcon" class="fas fa-volume-up text-gray-400"></i>
-                    <input type="range" id="volumeSlider" min="0" max="100" value="50" class="w-24">
-                </div>
-            </div>
-        </footer>
+  <div class="relative z-10 flex flex-col h-screen">
+    <!-- Toast / message bar -->
+    <div id="message-bar"
+         class="fixed top-0 left-0 w-full bg-red-600 text-white text-center p-3 z-50 font-medium transition-transform duration-300 -translate-y-full">
     </div>
 
-    <!-- JS Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
-    <script src="p5-background.js"></script>
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/"
-        }
+    <!-- Top Nav -->
+    <nav class="main-nav">
+      <div class="logo"><i class="fas fa-headphones-alt"></i> Audio Hub</div>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="musicvisualizer.html" class="active">Visualizer</a>
+        <a href="editor.html">Editor</a>
+        <a href="lyrics.html">Lyrics Converter</a>
+      </div>
+
+      <!-- Right utilities -->
+      <div class="flex items-center gap-2">
+        <button class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-sm"
+                @click="showShortcuts=true" title="Keyboard Shortcuts">
+          <i class="fa-solid fa-keyboard"></i> <span class="hidden md:inline">Shortcuts</span>
+        </button>
+        <button class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-sm"
+                @click="settingsOpen=true" title="Visualizer Settings">
+          <i class="fa-solid fa-sliders"></i> <span class="hidden md:inline">Settings</span>
+        </button>
+        <button class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-sm"
+                @click="toggleTheme()" :aria-pressed="theme==='dark' ? 'true':'false'" title="Toggle theme">
+          <i class="fa-solid" :class="theme==='dark' ? 'fa-moon' : 'fa-sun'"></i>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main: Canvas + Sidebar -->
+    <div class="flex-grow flex flex-col md:flex-row overflow-hidden"
+         @dragover.prevent
+         @drop.prevent="handleDrop($event)">
+      <!-- Visualizer -->
+      <div id="visualizer-container"
+           class="flex-grow relative flex items-center justify-center bg-transparent overflow-hidden">
+        <canvas id="visualizer-canvas" class="absolute top-0 left-0"></canvas>
+
+        <!-- Empty state hint -->
+        <div x-show="!hasTracks"
+             class="pointer-events-none select-none absolute inset-0 flex items-center justify-center text-center p-8">
+          <div class="max-w-md opacity-70">
+            <div class="text-5xl mb-4"><i class="fa-regular fa-circle-play"></i></div>
+            <h2 class="text-xl font-semibold mb-2">Drop MP3s to get started</h2>
+            <p class="text-gray-300 text-sm">Or use the <span class="font-semibold">+</span> button to import files.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar: Playlist -->
+      <aside class="w-full md:w-[360px] flex-shrink-0 bg-gray-900/60 backdrop-blur-sm p-4 border-l border-gray-700 flex flex-col">
+        <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-700">
+          <h3 class="text-xl font-semibold">Up Next</h3>
+          <div class="flex items-center gap-2">
+            <button class="control-btn" @click="sortAlpha()" title="Sort A–Z"><i class="fa-solid fa-arrow-down-a-z"></i></button>
+            <button class="control-btn" @click="clearPlaylist()" title="Clear playlist"><i class="fa-regular fa-trash-can"></i></button>
+            <label for="audioFileInput" class="control-btn accent-blue" title="Add MP3(s)">
+              <i class="fas fa-plus"></i>
+            </label>
+          </div>
+          <input type="file" id="audioFileInput" accept=".mp3" class="hidden" multiple
+                 @change="emitFiles($event.target.files)"/>
+        </div>
+
+        <div id="playlist-items-container" class="flex-grow overflow-y-auto no-scrollbar pr-2 space-y-2">
+          <template x-if="!hasTracks">
+            <p id="empty-playlist-message" class="text-gray-400 text-center mt-4">Add some MP3s to get started.</p>
+          </template>
+          <!-- Your script.js will render actual items into #playlist-items-container -->
+        </div>
+      </aside>
+    </div>
+
+    <!-- Bottom Controls -->
+    <footer class="flex-shrink-0 bg-gray-900/70 backdrop-blur-md border-t border-gray-700 p-4 flex flex-col items-center gap-3">
+      <!-- Seek -->
+      <div class="w-full max-w-3xl flex items-center gap-3">
+        <span id="currentTime" class="w-12 text-center text-sm text-gray-400">0:00</span>
+        <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1" disabled class="flex-grow">
+        <span id="totalDuration" class="w-12 text-center text-sm text-gray-400">0:00</span>
+      </div>
+      <!-- Controls -->
+      <div class="w-full max-w-3xl flex items-center justify-between gap-4">
+        <!-- Track Name -->
+        <div class="w-1/3">
+          <p id="currentTrackName" class="text-sm text-gray-300 truncate font-medium">No song selected</p>
+        </div>
+        <!-- Buttons -->
+        <div class="flex items-center justify-center gap-4">
+          <button id="skipBackButton" class="control-btn" title="Previous Track" disabled><i class="fas fa-backward-step"></i></button>
+          <button id="playPauseButton" class="control-btn accent-red play-pause-btn text-2xl w-14 h-14 rounded-full" disabled>
+            <i class="fas fa-play"></i>
+          </button>
+          <button id="skipForwardButton" class="control-btn" title="Next Track" disabled><i class="fas fa-forward-step"></i></button>
+        </div>
+        <!-- Volume -->
+        <div class="w-1/3 flex items-center justify-end gap-2">
+          <i id="volumeIcon" class="fas fa-volume-up text-gray-400"></i>
+          <input type="range" id="volumeSlider" min="0" max="100" value="50" class="w-24">
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Settings Drawer (Alpine) -->
+  <div x-show="settingsOpen" x-transition.opacity
+       class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm">
+    <div class="absolute right-0 top-0 h-full w-full sm:w-[420px] bg-gray-900 border-l border-gray-700 p-6 overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold">Visualizer Settings</h3>
+        <button class="text-2xl leading-none text-gray-400 hover:text-white"
+                @click="settingsOpen=false">&times;</button>
+      </div>
+
+      <div class="space-y-6">
+        <!-- Preset -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Preset</label>
+          <select class="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2"
+                  x-model="preset"
+                  @change="notify('preset', preset)">
+            <option value="cosmic-grid">Cosmic Grid</option>
+            <option value="wave-tunnel">Wave Tunnel</option>
+            <option value="particle-burst">Particle Burst</option>
+          </select>
+          <p class="text-xs text-gray-400 mt-1">Sends a <code>visualizer:preset</code> event for your module.</p>
+        </div>
+
+        <!-- Sensitivity -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">
+            Sensitivity <span class="text-gray-400">(FFT / gain)</span>
+          </label>
+          <input type="range" min="0" max="100" x-model.number="sensitivity"
+                 @input="notify('sensitivity', sensitivity)"
+                 class="w-full">
+        </div>
+
+        <!-- Particles -->
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm font-medium text-gray-300">Particles</div>
+            <div class="text-xs text-gray-400">Enable extra visual effects</div>
+          </div>
+          <label class="inline-flex items-center cursor-pointer">
+            <input type="checkbox" class="hidden" x-model="particles"
+                   @change="notify('particles', particles)">
+            <span class="w-12 h-6 bg-white/10 border border-white/10 rounded-full relative">
+              <span class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition"
+                    :style="particles ? 'transform: translateX(24px)' : ''"></span>
+            </span>
+          </label>
+        </div>
+
+        <!-- Reset -->
+        <div class="pt-2">
+          <button class="w-full px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg"
+                  @click="resetSettings()">Reset to defaults</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts Modal -->
+  <div x-show="showShortcuts" x-transition.opacity
+       class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div @click.outside="showShortcuts=false"
+         x-transition.scale
+         class="bg-gray-900/90 border border-gray-700 rounded-2xl p-6 w-full max-w-lg">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold">Keyboard Shortcuts</h3>
+        <button class="text-2xl leading-none text-gray-400 hover:text-white"
+                @click="showShortcuts=false">&times;</button>
+      </div>
+      <ul class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-300">
+        <li><span class="font-semibold">Space</span> — Play/Pause</li>
+        <li><span class="font-semibold">← / →</span> — Seek -/+ 5s</li>
+        <li><span class="font-semibold">↑ / ↓</span> — Volume -/+</li>
+        <li><span class="font-semibold">N / P</span> — Next / Previous</li>
+        <li><span class="font-semibold">S</span> — Toggle Settings</li>
+        <li><span class="font-semibold">M</span> — Mute/Unmute</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- JS libs (kept) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <script src="p5-background.js"></script>
+
+  <!-- Three.js via import map (kept) -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/"
     }
-    </script>
-    <script type="module" src="script.js"></script>
+  }
+  </script>
+
+  <!-- NEW: Alpine.js (UI behaviors) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Your module (kept) -->
+  <script type="module" src="script.js"></script>
+
+  <!-- Alpine helpers -->
+  <script>
+    function uiState(){
+      return {
+        settingsOpen:false,
+        showShortcuts:false,
+        theme:'dark',
+        preset:'cosmic-grid',
+        sensitivity:60,
+        particles:true,
+        hasTracks:false, // toggled true by events from script.js
+
+        toggleTheme(){
+          this.theme = (this.theme === 'dark') ? 'light' : 'dark';
+          document.documentElement.classList.toggle('tw-light', this.theme === 'light');
+          this.toast(`Theme: ${this.theme}`);
+        },
+        notify(key, value){
+          // Dispatch events your script.js can listen for if desired
+          window.dispatchEvent(new CustomEvent('visualizer:'+key, { detail:value }));
+        },
+        resetSettings(){
+          this.preset='cosmic-grid'; this.sensitivity=60; this.particles=true;
+          this.notify('preset', this.preset);
+          this.notify('sensitivity', this.sensitivity);
+          this.notify('particles', this.particles);
+          this.toast('Settings reset');
+        },
+        toast(msg){
+          const bar = document.getElementById('message-bar');
+          bar.textContent = msg;
+          bar.classList.remove('-translate-y-full');
+          setTimeout(()=>bar.classList.add('-translate-y-full'), 1800);
+        },
+        sortAlpha(){
+          // Let script.js own DOM for items; just emit a request
+          window.dispatchEvent(new CustomEvent('playlist:sort', { detail:'alpha' }));
+          this.toast('Sorted A–Z');
+        },
+        clearPlaylist(){
+          window.dispatchEvent(new Event('playlist:clear'));
+          this.toast('Playlist cleared');
+        },
+        emitFiles(fileList){
+          // pass files to script.js (which should handle adding to playlist / decoding)
+          window.dispatchEvent(new CustomEvent('files:added', { detail: Array.from(fileList) }));
+          this.hasTracks = true;
+        },
+        handleDrop(e){
+          if(!e.dataTransfer || !e.dataTransfer.files?.length) return;
+          this.emitFiles(e.dataTransfer.files);
+        }
+      }
+    }
+
+  </script>
 </body>
 </html>

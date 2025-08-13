@@ -58,6 +58,27 @@
 
     .no-scrollbar::-webkit-scrollbar{ display:none }
     .no-scrollbar{ -ms-overflow-style:none; scrollbar-width:none }
+
+    select, select option {
+  color: #111;
+  background-color: #fff;
+  border: 1px solid #d1d5db; /* Light border for visibility */
+  font-size: 1rem;           /* Larger font */
+}
+html:not(.tw-light) select,
+html:not(.tw-light) select option {
+  color: #fff;
+  background-color: #18181b;
+  border: 1px solid #27272a;
+  font-size: 1rem;
+}
+.no-scrollbar:hover::-webkit-scrollbar {
+  display: block !important;
+}
+.no-scrollbar:hover {
+  scrollbar-width: thin;
+  scrollbar-color: #888 #222;
+}
   </style>
 
   <!-- p5.js background -->

@@ -201,10 +201,8 @@ input[type="range"]:hover::-webkit-slider-thumb {
 }
 
 
-/* Notification Bar */
-.translate-y-full {
-    transform: translateY(-100%);
-}
+/* alias for the class the JS toggles */
+.-translate-y-full { transform: translateY(-100%); }
 
 /* Small, hover-only remove button inside playlist items */
 .playlist-item .remove-btn {
@@ -228,4 +226,18 @@ input[type="range"]:hover::-webkit-slider-thumb {
   background: var(--bg-tertiary);
   color: var(--text-primary);
   border-color: var(--border-primary);
+}
+/* show progress using the JS-updated --seek-before-width */
+input[type="range"] {
+  background: linear-gradient(
+    to right,
+    var(--accent-secondary) 0%,
+    var(--accent-secondary) var(--seek-before-width, 0%),
+    var(--bg-tertiary) var(--seek-before-width, 0%),
+    var(--bg-tertiary) 100%
+  );
+}
+input[type="range"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

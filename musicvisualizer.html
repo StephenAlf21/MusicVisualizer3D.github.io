@@ -5,19 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Geometric Music Visualizer</title>
 
-  <!-- Tailwind CDN (dev/proto only; use CLI/PostCSS for prod) -->
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- Font Awesome -->
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 
-  <!-- Inter font -->
+  <!-- Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 
-  <!-- Favicons -->
+  <!-- Favicons (optional) -->
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png"/>
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png"/>
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png"/>
@@ -55,9 +55,30 @@
       );
     }
     #seekBar::-webkit-slider-thumb { background: var(--accent-tertiary); }
+
     .no-scrollbar::-webkit-scrollbar{ display:none }
     .no-scrollbar{ -ms-overflow-style:none; scrollbar-width:none }
   </style>
+
+  <!-- p5.js background -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <script src="p5-background.js"></script>
+
+  <!-- Three.js via import map -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Visualizer module -->
+  <script type="module" src="script.js"></script>
 </head>
 <body class="flex flex-col h-screen overflow-hidden bg-gray-900 text-white selection:bg-red-600/40">
 
@@ -117,7 +138,7 @@
         </div>
       </div>
 
-      <!-- Sidebar: Playlist -->
+      <!-- Sidebar: Playlist + Live Radio -->
       <aside class="w-full md:w-[360px] flex-shrink-0 bg-gray-900/60 backdrop-blur-sm p-4 border-l border-gray-700 flex flex-col">
         <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-700">
           <h3 class="text-xl font-semibold">Up Next</h3>
@@ -136,8 +157,29 @@
           <template x-if="!hasTracks">
             <p id="empty-playlist-message" class="text-gray-400 text-center mt-4">Add some MP3s to get started.</p>
           </template>
-          <!-- Your script.js will render actual items into #playlist-items-container -->
+          <!-- script.js renders items into #playlist-items-container -->
         </div>
+
+        <!-- LIVE RADIO -->
+        <div class="mt-4 pt-4 border-t border-gray-700 space-y-3">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-tower-broadcast text-red-400"></i>
+            <h4 class="text-sm font-semibold">Live Radio</h4>
+          </div>
+
+          <div class="flex gap-2">
+            <input id="radioSearchInput" type="text"
+                   placeholder="Search radio (e.g., Q104 Halifax)"
+                   class="flex-1 px-3 py-2 rounded-lg bg-gray-800/80 border border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"/>
+            <button id="radioSearchBtn" class="control-btn accent-blue">Search</button>
+          </div>
+
+          <div id="radioRecommended">
+            <p class="text-xs text-gray-400 mb-2">Open Access Stations</p>
+            <ul class="space-y-1"></ul>
+          </div>
+        </div>
+        <!-- /LIVE RADIO -->
       </aside>
     </div>
 
@@ -193,7 +235,7 @@
             <option value="wave-tunnel">Wave Tunnel</option>
             <option value="particle-burst">Particle Burst</option>
           </select>
-          <p class="text-xs text-gray-400 mt-1">Sends a <code>visualizer:preset</code> event for your module.</p>
+          <p class="text-xs text-gray-400 mt-1">Sends a <code>visualizer:preset</code> event.</p>
         </div>
 
         <!-- Sensitivity -->
@@ -245,33 +287,14 @@
       <ul class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-300">
         <li><span class="font-semibold">Space</span> — Play/Pause</li>
         <li><span class="font-semibold">← / →</span> — Seek -/+ 5s</li>
-        <li><span class="font-semibold">↑ / ↓</span> — Volume -/+</li>
+        <li><span class="font-semibold">↑ / ↓</span> — Volume up/down</li>
+        <li><span class="font-semibold">A</span> — Sort A–Z</li>
         <li><span class="font-semibold">N / P</span> — Next / Previous</li>
         <li><span class="font-semibold">S</span> — Toggle Settings</li>
         <li><span class="font-semibold">M</span> — Mute/Unmute</li>
       </ul>
     </div>
   </div>
-
-  <!-- JS libs (kept) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
-  <script src="p5-background.js"></script>
-
-  <!-- Three.js via import map (kept) -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/"
-    }
-  }
-  </script>
-
-  <!-- NEW: Alpine.js (UI behaviors) -->
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-  <!-- Your module (kept) -->
-  <script type="module" src="script.js"></script>
 
   <!-- Alpine helpers -->
   <script>
@@ -283,7 +306,13 @@
         preset:'cosmic-grid',
         sensitivity:60,
         particles:true,
-        hasTracks:false, // toggled true by events from script.js
+        hasTracks:false, // toggled by playlist events
+        init(){
+          // Receive playlist state updates from script.js
+          window.addEventListener('playlist:state', (e)=>{
+            try { this.hasTracks = !!(e.detail && e.detail.hasTracks); } catch {}
+          });
+        },
 
         toggleTheme(){
           this.theme = (this.theme === 'dark') ? 'light' : 'dark';
@@ -291,7 +320,6 @@
           this.toast(`Theme: ${this.theme}`);
         },
         notify(key, value){
-          // Dispatch events your script.js can listen for if desired
           window.dispatchEvent(new CustomEvent('visualizer:'+key, { detail:value }));
         },
         resetSettings(){
@@ -308,7 +336,6 @@
           setTimeout(()=>bar.classList.add('-translate-y-full'), 1800);
         },
         sortAlpha(){
-          // Let script.js own DOM for items; just emit a request
           window.dispatchEvent(new CustomEvent('playlist:sort', { detail:'alpha' }));
           this.toast('Sorted A–Z');
         },
@@ -317,7 +344,6 @@
           this.toast('Playlist cleared');
         },
         emitFiles(fileList){
-          // pass files to script.js (which should handle adding to playlist / decoding)
           window.dispatchEvent(new CustomEvent('files:added', { detail: Array.from(fileList) }));
           this.hasTracks = true;
         },
@@ -327,7 +353,97 @@
         }
       }
     }
+  </script>
 
+  <!-- LIVE RADIO integration -->
+  <script>
+    // Tiny toast
+    function toast(msg) {
+      const bar = document.getElementById('message-bar');
+      bar.textContent = msg;
+      bar.classList.remove('-translate-y-full');
+      setTimeout(() => bar.classList.add('-translate-y-full'), 1800);
+    }
+
+    // HTTPS-only recommendations
+    const RADIO_RECOMMENDED = [
+      { name: "BBC World Service", url: "https://stream.live.vc.bbcmedia.co.uk/bbc_world_service", country: "UK" },
+      { name: "NPR News",        url: "https://npr-ice.streamguys1.com/live.mp3",                    country: "USA" }
+    ];
+
+    function renderRecommendedStations() {
+      const ul = document.querySelector('#radioRecommended ul');
+      if (!ul) return;
+      ul.innerHTML = '';
+      RADIO_RECOMMENDED.forEach(s => {
+        const li = document.createElement('li');
+        li.className = "flex items-center justify-between bg-gray-800/70 border border-gray-700 px-3 py-2 rounded hover:bg-gray-700 transition-colors";
+        li.innerHTML = `
+          <span class="truncate"><span class="font-semibold">${s.name}</span>
+            <span class="text-xs text-gray-400 ml-2">${s.country}</span></span>
+          <button class="control-btn accent-blue px-2 py-1 text-xs">Add</button>`;
+        li.querySelector('button').addEventListener('click', () => {
+          addRadioToPlaylist({ name: s.name, url: s.url, artist: s.country, type: 'radio' });
+        });
+        ul.appendChild(li);
+      });
+    }
+
+    // GET (avoids preflight on GitHub Pages)
+    async function fetchStationByName(name) {
+      try {
+        const params = new URLSearchParams({
+          name,
+          country: 'Canada',
+          state: 'Nova Scotia',
+          limit: '15',
+          hidebroken: 'true'
+        });
+        const url = 'https://de1.api.radio-browser.info/json/stations/search?' + params.toString();
+        const res = await fetch(url, { method: 'GET' });
+        if (!res.ok) throw new Error('API ' + res.status);
+        const stations = await res.json();
+        if (!stations || !stations.length) return null;
+        // Prefer HTTPS
+        return stations.find(s => s.url_resolved && s.url_resolved.startsWith('https://')) || stations[0];
+      } catch (err) {
+        console.error('Radio-Browser error', err);
+        toast('Radio directory unavailable. Try again later.');
+        return null;
+      }
+    }
+
+    function addRadioToPlaylist(track) {
+      if (window.__playlistApi && typeof window.__playlistApi.addExternalTrack === 'function') {
+        window.__playlistApi.addExternalTrack(track);
+      } else {
+        window.dispatchEvent(new CustomEvent('playlist:add-external', { detail: track }));
+      }
+      toast(`Added: ${track.name}`);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderRecommendedStations();
+      const btn = document.getElementById('radioSearchBtn');
+      const input = document.getElementById('radioSearchInput');
+      if (btn && input) {
+        btn.addEventListener('click', async () => {
+          const q = input.value.trim();
+          if (!q) return;
+          btn.disabled = true; btn.textContent = 'Searching…';
+          const st = await fetchStationByName(q);
+          btn.disabled = false; btn.textContent = 'Search';
+          if (!st) { toast('No playable stream found for “' + q + '”.'); return; }
+          addRadioToPlaylist({
+            name: st.name || q,
+            url:  st.url_resolved,
+            artist: st.state || st.country || 'Internet Radio',
+            type: 'radio'
+          });
+          input.value = '';
+        });
+      }
+    });
   </script>
 </body>
 </html>

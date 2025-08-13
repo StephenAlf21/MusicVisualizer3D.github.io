@@ -1,3 +1,5 @@
+/* script.js — drop-in replacement */
+
 import * as THREE from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
@@ -36,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const volumeSlider = $('volumeSlider');
   const volumeIcon = $('volumeIcon');
 
-  // prevent double wiring in dev/hot-reload
   let _listenersWired = false;
 
   // --- Init ---
@@ -46,6 +47,11 @@ document.addEventListener('DOMContentLoaded', () => {
     setupGlobalShortcuts();
     updateUI();
     animate();
+
+    // Make sure we resume the AudioContext on the very first user gesture
+    ['pointerdown','keydown','touchstart'].forEach(evt => {
+      window.addEventListener(evt, resumeAudioIfNeeded, { once: true, passive: true });
+    });
   }
 
   function initThree() {
@@ -136,33 +142,50 @@ document.addEventListener('DOMContentLoaded', () => {
     if (particles) particles.visible = !!particlesEnabled;
   }
 
-  function unlockAndInitAudio() {
+  async function unlockAndInitAudio() {
     if (audioContext) return;
 
     try {
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
       audioElement = new Audio();
+      audioElement.crossOrigin = 'anonymous';   // critical for cross-origin radio
+      audioElement.preload = 'metadata';
       audioElement.volume = volumeSlider.value / 100;
 
       analyser = audioContext.createAnalyser();
       analyser.fftSize = 512;
       dataArray = new Uint8Array(analyser.frequencyBinCount);
 
+      // Build the graph safely:
+      // mediaElement -> analyser (for visuals)
+      // mediaElement -> destination (ensures sound even if analyser/CORS misbehaves)
       source = audioContext.createMediaElementSource(audioElement);
       source.connect(analyser);
-      analyser.connect(audioContext.destination);
+      source.connect(audioContext.destination);
 
       audioElement.addEventListener('play', () => { isPlaying = true; renderPlaylist(); updateUI(); });
       audioElement.addEventListener('pause', () => { isPlaying = false; renderPlaylist(); updateUI(); });
       audioElement.addEventListener('ended', () => loadTrack(currentTrackIndex + 1));
       audioElement.addEventListener('timeupdate', updateSeekBar);
       audioElement.addEventListener('loadedmetadata', updateSeekBar);
+      audioElement.addEventListener('error', () => showToast('Audio error loading source.', 'error'));
+
+      await resumeAudioIfNeeded();
 
       showToast("Audio system ready!", "success");
     } catch (e) {
       console.error("Failed to initialize AudioContext:", e);
       showToast("Error: Could not initialize audio.", "error");
     }
+  }
+
+  async function resumeAudioIfNeeded() {
+    try {
+      if (audioContext && audioContext.state !== 'running') {
+        await audioContext.resume();
+      }
+    } catch {}
   }
 
   // --- Events ---
@@ -181,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     seekBar.onmousedown = () => { isSeeking = true; };
     seekBar.onmouseup = () => { isSeeking = false; seekToPosition(); };
-    seekBar.addEventListener('touchstart', () => { isSeeking = true; });
+    seekBar.addEventListener('touchstart', () => { isSeeking = true; }, { passive: true });
     seekBar.addEventListener('touchend', () => { isSeeking = false; seekToPosition(); });
 
     volumeSlider.oninput = handleVolumeChange;
@@ -208,23 +231,21 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Alpine → playlist
-    window.addEventListener('files:added', (e) => {
+    // Alpine → playlist (local files)
+    window.addEventListener('files:added', async (e) => {
       const files = Array.isArray(e.detail) ? e.detail : [];
       if (!files.length) return;
-      unlockAndInitAudio();
+      await unlockAndInitAudio();
       addFilesArrayToPlaylist(files);
     });
 
     window.addEventListener('playlist:sort', () => {
       if (!playlist.length) return;
 
-      // Remember current track object (if any), then sort
       const currentTrackObj = currentTrackIndex >= 0 ? playlist[currentTrackIndex] : null;
 
       playlist.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
-      // Re-point currentTrackIndex to the same object at its new position
       if (currentTrackObj) {
         const newIdx = playlist.indexOf(currentTrackObj);
         if (newIdx !== -1) currentTrackIndex = newIdx;
@@ -238,6 +259,44 @@ document.addEventListener('DOMContentLoaded', () => {
       stopPlaybackAndClear();
       showToast('Playlist cleared', 'success');
     });
+
+    // --- Accept external/radio tracks from UI (Live Radio block) ---
+    window.addEventListener('playlist:add-external', async (e) => {
+      const t = e.detail || {};
+      if (!t.url) return;
+
+      await unlockAndInitAudio();
+
+      // De-dupe by URL
+      if (playlist.some(p => p.url === t.url)) {
+        showToast('Already in playlist', 'info');
+        return;
+      }
+
+      const track = {
+        file: null,
+        url: t.url,
+        name: t.name || 'Stream',
+        artist: t.artist || 'Internet Radio',
+        type: t.type || 'radio'
+      };
+
+      playlist.push(track);
+      renderPlaylist();
+
+      // Try to autoplay; if gesture was lost, the play() will reject and
+      // the UI will remain enabled so the user can press Play once.
+      if (currentTrackIndex === -1 && playlist.length > 0) {
+        loadTrack(playlist.length - 1);
+      } else {
+        showToast(`Added: ${track.name}`, 'success');
+      }
+    });
+
+    // Optional: tiny API so the page can call directly
+    window.__playlistApi = {
+      addExternalTrack: (t) => window.dispatchEvent(new CustomEvent('playlist:add-external', { detail: t }))
+    };
   }
 
   // --- Global keyboard shortcuts ---
@@ -408,12 +467,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Playlist ---
   function addFilesArrayToPlaylist(files) {
-    // De-dupe by name+size to prevent “double add”
     const existingKeys = new Set(playlist.map(p => `${p.name}::${p.file?.size ?? -1}`));
     for (const file of files) {
       if (!(file && file.name && /\.mp3$/i.test(file.name))) continue;
       const key = `${file.name}::${file.size ?? -1}`;
-      if (existingKeys.has(key)) continue; // skip duplicates
+      if (existingKeys.has(key)) continue;
       playlist.push({ file, name: file.name, url: URL.createObjectURL(file) });
       existingKeys.add(key);
     }
@@ -425,7 +483,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (index < 0 || index >= playlist.length) return;
 
     const removingCurrent = (index === currentTrackIndex);
-    try { playlist[index].url && URL.revokeObjectURL(playlist[index].url); } catch {}
+    try {
+      const u = playlist[index].url;
+      if (u && typeof u === 'string' && u.startsWith('blob:')) URL.revokeObjectURL(u);
+    } catch {}
 
     playlist.splice(index, 1);
 
@@ -445,7 +506,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPlaylist();
   }
 
-  function loadTrack(index) {
+  async function loadTrack(index) {
     if (!playlist.length || !audioContext) return;
     if (index < 0) index = playlist.length - 1;
     if (index >= playlist.length) index = 0;
@@ -454,27 +515,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const track = playlist[index];
     currentTrackNameDisplay.textContent = track.name;
 
+    // make sure crossOrigin is set BEFORE src on every load
+    audioElement.crossOrigin = 'anonymous';
     audioElement.src = track.url;
-    audioElement.play().catch(e => {
-      console.error("Playback error:", e);
-      showToast("Error playing audio file.", "error");
-    });
+
+    await resumeAudioIfNeeded();
+
+    const playPromise = audioElement.play();
+    if (playPromise && typeof playPromise.then === 'function') {
+      playPromise.catch(async (e) => {
+        // Usually NotAllowedError (lost gesture) — keep UI enabled and try once after resume.
+        try {
+          await resumeAudioIfNeeded();
+          await audioElement.play();
+        } catch (err) {
+          console.warn('Playback error:', err);
+          showToast("Tap Play to start audio.", "info");
+        }
+      });
+    }
 
     renderPlaylist();
   }
 
-  function togglePlayPause() {
+  async function togglePlayPause() {
     if (!audioContext) {
       if (playlist.length > 0) {
-        unlockAndInitAudio();
+        await unlockAndInitAudio();
         loadTrack(0);
       } else {
         showToast("Please add MP3 files to the playlist first.", "info");
       }
       return;
     }
-    if (audioElement.paused) audioElement.play().catch(e => console.error("Playback error:", e));
-    else audioElement.pause();
+    await resumeAudioIfNeeded();
+
+    if (audioElement.paused) {
+      audioElement.play().catch(e => {
+        console.error("Playback error:", e);
+        showToast("Tap Play again to allow audio.", "info");
+      });
+    } else {
+      audioElement.pause();
+    }
   }
 
   function stopPlaybackAndClear() {
@@ -483,7 +566,12 @@ document.addEventListener('DOMContentLoaded', () => {
       audioElement.removeAttribute('src');
       audioElement.load();
     }
-    for (const item of playlist) { if (item.url) URL.revokeObjectURL(item.url); }
+    for (const item of playlist) {
+      try {
+        const u = item.url;
+        if (u && typeof u === 'string' && u.startsWith('blob:')) URL.revokeObjectURL(u);
+      } catch {}
+    }
     playlist = [];
     currentTrackIndex = -1;
     isPlaying = false;
@@ -523,7 +611,6 @@ document.addEventListener('DOMContentLoaded', () => {
         name.className = 'flex-grow text-white truncate';
         name.textContent = track.name;
 
-        // Small remove button — hidden until hover
         const removeBtn = document.createElement('button');
         removeBtn.className = 'remove-btn';
         removeBtn.title = 'Remove from playlist';
@@ -555,22 +642,41 @@ document.addEventListener('DOMContentLoaded', () => {
     playPauseButton.disabled = !hasTracks;
     skipBackButton.disabled = playlist.length < 2;
     skipForwardButton.disabled = playlist.length < 2;
-    seekBar.disabled = !hasTracks;
+
+    // seek enabled for finite media only (live streams disable it)
+    const finite = audioElement && isFinite(audioElement.duration);
+    seekBar.disabled = !hasTracks || !finite;
 
     playPauseButton.innerHTML = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
     if (!hasTracks) currentTrackNameDisplay.textContent = 'No song selected';
   }
 
   function updateSeekBar() {
-    if (!audioElement || !isFinite(audioElement.duration)) return;
-    if (!isSeeking) {
-      const progress = (audioElement.currentTime / audioElement.duration) * 100;
-      seekBar.value = isNaN(progress) ? 0 : progress;
-    }
-    seekBar.style.setProperty('--seek-before-width', `${seekBar.value}%`);
-    currentTimeDisplay.textContent = formatTime(audioElement.currentTime);
-    totalDurationDisplay.textContent = formatTime(audioElement.duration);
+  if (!audioElement) return;
+
+  const finite = Number.isFinite(audioElement.duration);
+
+  if (!finite) {
+    // live/unknown duration
+    seekBar.disabled = true;
+    seekBar.value = 0;
+    seekBar.style.setProperty('--seek-before-width', `0%`);
+    currentTimeDisplay.textContent = '—';
+    totalDurationDisplay.textContent = 'LIVE';
+    return;
   }
+
+  // ✅ NEW: when switching from radio -> MP3, re-enable once we know duration
+  if (seekBar.disabled) seekBar.disabled = false;
+
+  if (!isSeeking) {
+    const progress = (audioElement.currentTime / audioElement.duration) * 100;
+    seekBar.value = isNaN(progress) ? 0 : progress;
+  }
+  seekBar.style.setProperty('--seek-before-width', `${seekBar.value}%`);
+  currentTimeDisplay.textContent = formatTime(audioElement.currentTime);
+  totalDurationDisplay.textContent = formatTime(audioElement.duration);
+}
 
   function showToast(text, type = 'info') {
     if (!messageBar) return;
